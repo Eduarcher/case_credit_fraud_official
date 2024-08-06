@@ -188,6 +188,8 @@ Resources:
       Family: "CaseCreditFraud"
       Tags: []
   ECSCluster:
+    DependsOn:
+      - ECSExecutionRole
     UpdateReplacePolicy: "Delete"
     Type: "AWS::ECS::Cluster"
     DeletionPolicy: "Delete"

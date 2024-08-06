@@ -39,7 +39,6 @@
     - [Segregação de Contas AWS](#segregação-de-contas-aws)
     - [Exportação de Resultados de Testes Unitários](#exportação-de-resultados-de-testes-unitários)
     - [Isolamento de VPC](#isolamento-de-vpc)
-    - [Cobertura Completa do CloudFormation] #TODO
     - [Implementar EKS Substituindo ou Junto com ECS](#implementar-eks-substituindo-ou-junto-com-ecs)
     - [AWS Ground Truth](#aws-ground-truth)
     - [Alertas de Erro](#alertas-de-erro)
@@ -107,12 +106,14 @@ As características deste conjunto de dados são organizadas conforme o seguinte
 
 | Tempo   | V1    | V2    | ... | V28   | Quantidade      | Classe         |
 | ------- | ----- | ----- | --- | ----- | --------------- | -------------  |
-| Inteiro | Float | Float |     | Float | Float Não Sinalizado | Inteiro Binário |
+| Integer | Float | Float |     | Float | Float Unsigned | Integer Non-Binary |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+
 Onde as colunas podem ser descritas da seguinte forma:
-- Tempo (int): Tempo em número de segundos decorridos entre esta transação e a primeira transação no conjunto de dados, começando em 0 e terminando em 172792. Ordenado, positivo e não único.
+- Tempo (Integer): Tempo em número de segundos decorridos entre esta transação e a primeira transação no conjunto de dados, começando em 0 e terminando em 172792. Ordenado, positivo e não único.
 - Características PCA (Float): Características V1 a V28, resultantes da redução dimensional PCA, representando o comportamento, histórico e perfil do cliente.
-- Quantidade (Float Não Sinalizado): Valor total da operação.
-- Classe (Inteiro Binário): Representação da classe verdadeira para a operação, sendo 0 para não fraude ou 1 para fraude.
+- Quantidade (Float Unsigned): Valor total da operação.
+- Classe (Integer Non-Binary): Representação da classe verdadeira para a operação, sendo 0 para não fraude ou 1 para fraude.
 
 ### Download
 O conjunto de dados está disponível diretamente na [fonte do Kaggle](#KaggleDataset). Posteriormente, este conjunto de dados deve ser carregado no método de fonte AWS preferido, melhor descrito mais adiante nesta documentação.
@@ -234,14 +235,13 @@ Por fim, todos os logs dos componentes são direcionados para o AWS Cloudwatch p
 > Nem todos os componentes podem ser elegíveis para o AWS Free Tier.
 
 ### Pré-requisitos
-- Acesso ao Cloudformation.
-- Acesso à criação de funções IAM.
+- Terminal bash com AWS CLI configurada
+    - Requer acesso ao Cloudformation e a criação de IAM Roles.
 - Copie `.env.example` como `.env`.
     - Os valores precisarão ser preenchidos conforme instruído na seção [Variáveis de Ambiente](#environment_variables).
 - [Configure o Domínio do Sagemaker.](#SagemakerDomain).
     - Para os testes deste projeto, foi utilizado o setup de usuário único.
-    - Anote o ARN da "Função de execução padrão" e escreva-o no `.env`.
-    - Anote o nome do bucket S3 e escreva-o no `.env`. Caso contrário, qualquer bucket pode ser usado.
+    - Anote o nome do bucket S3 e escreva-o no `.env`. Caso o bucket não apareça nesta página, consulte a página do S3. Opcionalmente, qualquer bucket pode ser usado.
     - Anote o ID da VPC e escreva-o no `.env`. Caso contrário, uma VPC diferente pode ser utilizada para melhor isolamento do processo.
 - [Configure o Servidor de Rastreamento do MLFlow do Sagemaker](#SagemakerMLFlowSetup).
     - Anote o ARN do servidor e escreva-o no `.env`.
@@ -264,6 +264,8 @@ A infraestrutura como código é implantada de acordo com os modelos no diretór
 O script `cloudformation/install.sh` realiza a instalação das pilhas, enquanto `cloudformation/uninstall.sh` pode ser usado para desinstalar as pilhas. As pilhas também podem ser atualizadas, se necessário, mas isso exigiria uma intervenção especializada.
 
 > [!NOTE]  
+> Esta instalação foi testada no MacOS e no Ubuntu.
+>
 > Caso a instalação da pilha falhe por qualquer motivo, exclua todas as pilhas individualmente.
 > A `storage-stack` não exclui nenhum recurso ao ser desinstalada para evitar perda de dados. Exclua manualmente, se necessário, para reinstalar esta pilha.
 
@@ -340,9 +342,10 @@ O arquivo `.env` deve ser preenchido usando o `.env.example` e possui campos obr
 - **AWS_SAGEMAKER_S3_BUCKET_NAME:** Bucket S3 da AWS para armazenar dados ou artefatos.
 - **AWS_SAGEMAKER_S3_BUCKET_NAME_FOLDER_PREFIX:** Prefixo para os dados armazenados no AWS S3.
 - **MLFLOW_ARN:** ARN único do MLFlow. [Essa conexão deve ser criada manualmente](#SagemakerMLFlowSetup) antes que o ARN possa ser obtido.
-- **RDS_SECRET_NAME:** Nome do segredo do AWS Secret Manager para acessar o banco de dados RDS MySQL.
 - **VPC_ID:** Identificador da VPC para executar várias tarefas. Pode ser o mesmo do Domínio do Sagemaker.
 - **CRON_SCHEDULE:** Cronograma Cron para executar regularmente o pipeline de treinamento e implantação.
+- **RDS_HOST_URL:** (Opcional) URL do host para o banco de dados RDS MySQL. Não é necessário ao usar a origem S3.
+- **RDS_SECRET_NAME:** (Opcional) Nome do segredo do AWS Secret Manager para acessar o banco de dados RDS MySQL. Não é necessário ao usar a origem S3.
 - **AWS_SAGEMAKER_ROLE_IAM:** (Opcional) Define um IAM Role customizado para o Sagemaker. Caso contrário, usa o padrão gerado pelo Cloudformation.
 - **S3_RAW_DATA_KEY:** (Opcional) Localização do arquivo csv de dados brutos ao usar o S3 como origem. O valor padrão é s3://\<AWS_SAGEMAKER_S3_BUCKET_NAME\>/\<AWS_SAGEMAKER_S3_BUCKET_NAME_FOLDER_PREFIX\>/raw/creditcard.csv
 - **TRAINING_ALGORITHM:** (Opcional) Selecione o algoritmo de treinamento. Substitui a configuração padrão.
@@ -362,7 +365,6 @@ Além disso, existem poucos testes efetivos implementados no momento, portanto, 
 Semelhante à segregação de contas, as Virtual Private Clouds, ou VPCs, [são ferramentas poderosas para alcançar o isolamento de componentes, criando redes privadas para a comunicação dos componentes](#VPCConnection). Elas são atualmente usadas neste projeto juntamente com suas sub-redes, em uma implementação simplificada. Idealmente, os ambientes de desenvolvimento, pré-produção e produção terão VPCs exclusivas, e haverá pouca comunicação entre eles. Por exemplo, mesmo em redes separadas, a implantação contínua de desenvolvimento seria capaz de acionar automaticamente a última atualização no pipeline de pré-produção.
 
 ### Implementar EKS Substituindo ou Juntamente com ECS
-#TODO
 O ECS oferece a solução serverless ideal para pequenas e médias empresas, mas para grandes empresas com Kubernetes existente, [o EKS deve ser considerado como uma opção em relação ao ECS, ou juntamente com ele](#EKSVSECS). Embora sejam semelhantes, o ECS oferece maior simplicidade e viabilidade de custos sob seu modelo "pague conforme o uso", e o EKS apresenta a melhor estabilidade e recursos usuais de implantações completas do Kubernetes. Ambos têm muitas opções para computação e podem ser usados juntos sem problemas.
 
 ### AWS Ground Truth
