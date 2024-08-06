@@ -20,11 +20,14 @@
         - [Implantação](#implantação)
         - [Gerenciamento de Acesso](#gerenciamento-de-acesso)
         - [Armazenamento](#armazenamento)
-5. [Plano de Implementação](#5-plano-de-implementação)
+5. [Documentação da API](#5-documentação-da-api)
+    - [Assinatura](#assinatura)
+    - [Exemplo](#exemplo)
+6. [Plano de Implementação](#6-plano-de-implementação)
     - [Pré-requisitos](#pré-requisitos)
     - [Infraestrutura com CloudFormation](#infraestrutura-com-cloudformation)
     - [Depuração](#depuração)
-6. [Configuração](#6-configuração)
+7. [Configuração](#7-configuração)
     - [Parâmetros](#parâmetros)
         - [Global](#global)
         - [ECS](#ecs)
@@ -35,7 +38,7 @@
         - [Implantação](#implantação-1)
         - [APIGateway](#apigateway)
     - [Variáveis de Ambiente](#variáveis-de-ambiente)
-7. [Atualizações Futuras](#7-atualizações-futuras)
+8. [Atualizações Futuras](#8-atualizações-futuras)
     - [Segregação de Contas AWS](#segregação-de-contas-aws)
     - [Exportação de Resultados de Testes Unitários](#exportação-de-resultados-de-testes-unitários)
     - [Isolamento de VPC](#isolamento-de-vpc)
@@ -46,7 +49,7 @@
     - [Glacier para Armazenamento de Longo Prazo](#glacier-para-armazenamento-de-longo-prazo)
     - [Integração com Grafana ou Similar](#integração-com-grafana-ou-similar)
     - [Outros](#outros)
-8. [Referências](#8-referências)
+9. [Referências](#9-referências)
 
 ## 1. Introdução
 Algoritmos de machine learning oferecem meios para analisar dados históricos de transações, identificar padrões e detectar anomalias indicativas de atividades fraudulentas. Esses algoritmos utilizam características como valor da transação, localização, horário, detalhes do comerciante, histórico e comportamento do cliente para treinar modelos capazes de distinguir entre transações legítimas e fraudulentas.
@@ -97,7 +100,7 @@ Este documento apresenta a arquitetura e o fluxo de trabalho de um projeto de Op
 
 ## 2. Banco de Dados
 ### Sobre
-O conjunto de dados aplicado neste caso é composto por características derivadas de transações de cartão de crédito de clientes reais, anonimizadas através da aplicação do método de [Análise de Componentes Principais (PCA)](#PCA) e disponível publicamente online. A escolha deste conjunto de dados se deve às seguintes características e interpretações:
+O conjunto de dados aplicado neste case é composto por características derivadas de transações de cartão de crédito de clientes reais, anonimizadas através da aplicação do método de [Análise de Componentes Principais (PCA)](#PCA) e disponível publicamente online. A escolha deste conjunto de dados se deve às seguintes características e interpretações:
 - O conjunto de dados é altamente confiável, limpo e tem a escala apropriada.
 - Alinhamento com o campo de interesse do Santander.
 - Simplicidade, já que muitas vezes em um cenário real o cientista de dados e o engenheiro de ML criarão pipelines sobre conjuntos de dados consolidados existentes.
@@ -120,7 +123,7 @@ O conjunto de dados está disponível diretamente na [fonte do Kaggle](#KaggleDa
 
 > [!AVISO]  
 > O conjunto de dados foi inserido manualmente em uma tabela equivalente no banco de dados AWS RDS MySQL.
-> Como esta configuração está fora do escopo do caso, os detalhes não serão incluídos.
+> Como esta configuração está fora do escopo do case, os detalhes não serão incluídos.
 >
 > Para testes, o método de fonte mais acessível para o projeto é carregar os dados no AWS S3 e defini-lo como a fonte de dados.
 
@@ -137,15 +140,17 @@ Este projeto é totalmente desenvolvido para implantação e integração na AWS
 - start.sh: Comandos iniciais para a execução da imagem do Docker.
 - testspec.yml: Configuração para testes unitários no pipeline de integração contínua. Este arquivo geralmente é gerenciado em um repositório separado.
 - buildspec.yml: Configuração para a construção da imagem no pipeline de integração contínua. Este arquivo geralmente é gerenciado em um repositório separado.
-- .env: Variáveis de ambiente padrão usadas no projeto.
+- .env.example: Exemplo de variáveis de ambiente padrão usadas no projeto.
+- config.yaml: Parâmetros de configuração do projeto.
 - credit_fraud: Código-fonte para o pacote credit-fraud, incluindo as configurações do pipeline do Sagemaker, definições de jobs, funções de contexto e helpers.
 - cloudformation: Scripts e modelos de IaaC (Infraestrutura como Código).
 - tests: Testes unitários usados na fase de integração contínua.
 - models: Diretório de parâmetros de modelos padrão, a ser usado quando as variáveis de ambiente não forem definidas.
+- dependencies: Dependências especiais do projeto.
 
 ## 4. Arquitetura
 ### Justificativa Tecnológica
-Para atender plenamente aos requisitos apresentados, este caso foi projetado para ser totalmente baseado em nuvem desde a concepção, considerando quatro provedores ou qualquer combinação deles: Databricks, AWS, Azure, GCP. As características consideradas incluíram preço, escalabilidade, qualidade da documentação, aderência aos requisitos do projeto, relevância para o Santander, praticidade, integrações, capacidades do ambiente de aprendizado de máquina e experiência pessoal. 
+Para atender plenamente aos requisitos apresentados, este case foi projetado para ser totalmente baseado em nuvem desde a concepção, considerando quatro provedores ou qualquer combinação deles: Databricks, AWS, Azure, GCP. As características consideradas incluíram preço, escalabilidade, qualidade da documentação, aderência aos requisitos do projeto, relevância para o Santander, praticidade, integrações, capacidades do ambiente de aprendizado de máquina e experiência pessoal. 
 
 No final, apenas a AWS foi escolhida como provedora. Ao implementar uma arquitetura de MLOps de ponta a ponta, existem várias razões para escolher os serviços da AWS:
 
@@ -164,23 +169,23 @@ Em conclusão, escolher os serviços da AWS, como Amazon SageMaker, Amazon ECS, 
 ### Visão Geral da Arquitetura
 ![visao-geral-arquitetura](imgs/overview.png)
 
-A arquitetura completa proposta está representada acima, omitindo algumas operações menores, como persistência de dados, registro e comunicação entre componentes, para melhor compreensão. Essa arquitetura é composta principalmente por três fases: Integração Contínua, Pipeline de Modelos e Implantação.
+A arquitetura completa proposta está representada na figura acima, omitindo algumas operações menores, como persistência de dados, registro e comunicação entre componentes, para melhor compreensão. Essa arquitetura é composta principalmente por três fases: Integração Contínua, Pipeline de Modelos e Implantação.
 
 #### Integração Contínua
-Começando com uma mesclagem bem-sucedida de qualquer ramo de origem para o ramo de desenvolvimento do repositório do GitHub, o AWS CodePipeline é acionado automaticamente para uma nova execução de integração. O repositório atualizado é coletado contendo as configurações necessárias para a execução do pipeline. Este pipeline é principalmente sem servidor ou usa IaaC para definir recursos de computação.
+Começando com um merge bem-sucedido de qualquer branch de origem para o branch de desenvolvimento do repositório do GitHub, o AWS CodePipeline é acionado automaticamente para uma nova execução de integração. O repositório atualizado é coletado contendo as configurações necessárias para a execução do pipeline. Este pipeline é principalmente sem servidor e usa IaC para definir recursos de computação.
 
 Inicialmente, o CodeBuild é invocado para testes unitários, conforme definido no arquivo `testspec.yml` e configurado na seção `tool.pytest.ini_options` do arquivo `pyproject.toml`. Os resultados são registrados em um relatório da tarefa do AWS CodeBuild e podem ser acessados por usuários autorizados para análise. Por fim, se os testes falharem por qualquer motivo, a execução do pipeline também falhará e será interrompida imediatamente. No momento, embora a funcionalidade de teste tenha sido desenvolvida e integrada, existem poucos testes e a cobertura é muito baixa.
 
-Após a aprovação do novo código, a fase de construção, que tem como objetivo criar uma nova imagem de contêiner Docker, é iniciada, também alimentada pelo serviço AWS CodeBuild e configurada pelos arquivos `Dockerfile` e `buildspec.yml`. Em uma construção bem-sucedida, a nova imagem é registrada em um repositório do AWS Elastic Container Registry (ECR). Como esperado, se a construção falhar, a execução do pipeline será interrompida e os logs para depuração estarão disponíveis no AWS CloudWatch.
+Após a aprovação do novo código, a fase de construção, que tem como objetivo criar uma nova imagem de contêiner Docker, é iniciada, também alimentada pelo serviço AWS CodeBuild e configurada pelos arquivos `Dockerfile` e `buildspec.yml`. Em uma construção bem-sucedida, a nova imagem é registrada em um repositório do AWS Elastic Container Registry (ECR). Como esperado caso a construção falhe, a execução do pipeline será interrompida e os logs para depuração estarão disponíveis no AWS CloudWatch.
 
-Vale ressaltar que a imagem construída será registrada com a tag relacionada à versão do projeto, definida no arquivo `pyproject.toml`. A adesão ao controle de versão semântica é, portanto, responsabilidade dos destinatários da solicitação de pull, de acordo com as alterações e atualizações realizadas.
+Vale ressaltar que a imagem construída será registrada com a tag relacionada à versão do projeto, definida no arquivo `pyproject.toml`. A adesão ao controle de versão semântica é, portanto, responsabilidade dos desenvolvedores da pull request, de acordo com as alterações e atualizações realizadas. Não está no escopo deste projeto, mas é recomendado criar proteções contra commits direto na branch principal e usar o Github Actions para realizar validações da versão semântica antes do merge.
 
-Concluindo a execução, é feita a invocação da função AWS Lambda responsável por atualizar e acionar a tarefa do AWS Elastic Container Service (ECS) com a imagem recém-criada. Conforme declarado no arquivo `credit_fraud/lambda_functions/sources/lambda_run_pipeline.py`, essa função Lambda atualiza a definição da tarefa do ECS com a nova URI da imagem do repositório do ECR, executa essa tarefa atualizada e marca como bem-sucedida a execução do CodePipeline.
+Concluindo a execução, é feita a invocação da função AWS Lambda responsável por atualizar e acionar a tarefa do AWS Elastic Container Service (ECS) com a imagem recém-criada. Conforme declarado no arquivo `credit_fraud/lambda_functions/sources/lambda_run_pipeline.py`, essa função Lambda atualiza a definição da tarefa do ECS com a nova URI da imagem do repositório do ECR, aciona a execução desta tarefa atualizada pelo cluster Fargate serverless, e marca como bem-sucedida a execução do CodePipeline.
 
-Fora do pipeline de integração contínua, o AWS Eventbridge Scheduler é responsável por executar diariamente o treinamento do modelo, mantendo o modelo atualizado assim que novos dados estiverem disponíveis. Essa programação pode ser personalizada, rastreada e novos acionadores podem ser adicionados, como a disponibilização de novos dados.
+Além do pipeline de integração contínua, o AWS Eventbridge Scheduler é responsável por executar diariamente o treinamento do modelo, mantendo o modelo atualizado assim que novos dados estiverem disponíveis. Essa programação pode ser personalizada, rastreada e novos acionadores podem ser adicionados no futuro se desejado, como a disponibilização de novos dados.
 
 #### Pipeline de Modelos
-A imagem do Docker é responsável pela configuração e implantação de um Pipeline do Sagemaker que realizará tarefas de processamento de dados e treinamento de modelos que exigem recursos de computação escaláveis horizontalmente. Esse pipeline é altamente personalizável usando variáveis de ambiente e é representado com configurações específicas, realizando treinamento e implantação do modelo LGBM da seguinte forma:
+A imagem do Docker é responsável pela configuração e implantação de um Pipeline do Sagemaker que realizará tarefas de processamento horizontal de dados e treinamento de modelos. Esse pipeline é altamente personalizável usando variáveis de ambiente e é representado com configurações específicas, realizando treinamento e implantação do modelo XGBoost da seguinte forma:
 
 ![pipeline-sagemaker](imgs/sagemaker_pipeline.png)
 
@@ -192,7 +197,7 @@ Após o processamento bem-sucedido dos dados, o treinamento do modelo suporta ta
 
 O modelo é posteriormente avaliado na tarefa de avaliação dedicada usando o conjunto de testes, e as métricas de teste também são registradas no experimento do MLFlow. Essas métricas de teste são usadas no portão de validação condicional para garantir a eficiência do novo modelo antes da implantação, caso contrário, interrompendo a execução do pipeline e registrando o motivo da métrica ou métricas abaixo do esperado no AWS CloudWatch para depuração.
 
-Finalmente, uma vez aprovado, o modelo é registrado no MLFlow e criado no Sagemaker como um modelo implantável com definições que fazem referência à imagem do contêiner, endereço URI do artefato e recursos de instância preferenciais. Ao registrar o modelo no MLFlow, ele também é automaticamente registrado na interface de modelo do Sagemaker Studio, permitindo uma visão geral agregada juntamente com o pipeline.
+Finalmente, uma vez aprovado, o modelo é registrado no MLFlow e criado no Sagemaker como um modelo implantável com definições que fazem referência à imagem do contêiner, endereço URI do artefato e recursos de instância preferenciais. Ao registrar o modelo no MLFlow, ele também é automaticamente registrado na interface de modelo do Sagemaker Studio, permitindo uma visão geral agregada juntamente com o pipeline. Diferentes versões dos modelos podem ser comparados através da UI do MLFlow.
 
 ![mlflow](imgs/mlflow.png)
 
@@ -215,18 +220,88 @@ Ao invocar a função de implantação na etapa final do Pipeline do Sagemaker, 
 Os dois componentes finais da implantação são a função AWS Lambda de inferência e o AWS API Gateway, ambos sem servidor e, portanto, altamente escaláveis. Enquanto o API Gateway é uma API de roteador que funciona como o acesso público para os usuários, ele atua como um proxy e direciona as solicitações para a função Lambda, incluindo o corpo contendo os dados de entrada para a avaliação do modelo. Essa função Lambda é responsável pelo processamento de acordo com a interface do endpoint, que pode variar entre o modelo escolhido (XGBoost ou LGBM), e pela invocação do endpoint específico. A resposta resultante é processada e retornada ao cliente.
 
 #### Gerenciamento de Acesso
-O acesso baseado em roles do AWS IAM autoriza os componentes a realizar as operações necessárias. O acesso ao ponto de extremidade do modelo é autenticado usando credenciais da AWS. As funções de acesso e as políticas são criadas usando o CloudFormation para este caso, mas em um ambiente de produção real, elas devem ser gerenciadas pela equipe de segurança e autorização. Idealmente, as roles criadas incluem apenas as políticas necessárias para autorizar suas ações e responsabilidades esperadas.
+O acesso baseado em roles do AWS IAM autoriza os componentes a realizar as operações necessárias. O acesso ao endpoint do modelo é autenticado usando credenciais da AWS. As roles de acesso e as políticas são criadas usando o CloudFormation para este case, mas em um ambiente de produção real, elas devem ser gerenciadas pela equipe de segurança e autorização. Idealmente, as roles criadas incluem apenas as políticas necessárias para autorizar suas ações e responsabilidades esperadas.
 
 O acesso à API é limitado à chave de API criada automaticamente com o CloudFormation e disponível no console de gerenciamento do AWS API Gateway. Esse método de segurança, além de ser simples, é eficaz, seguro e está associado ao plano de uso que controla o uso da chave e limita sua taxa de solicitação. Novas chaves podem ser geradas, se necessário.
 
 #### Armazenamento
 Principalmente, o AWS S3 é usado para armazenar a maioria dos objetos, incluindo metadados subjacentes e outros dados gerados automaticamente por alguns componentes. Cada execução do pipeline do modelo tem seus artefatos, dados de entrada, dados processados, scripts, métricas e metadados gerais registrados no S3 para reprodutibilidade. O nome do bucket S3 e o prefixo do diretório definidos em `.env` são usados como caminho base para persistência de dados.
 
-Além disso, as imagens de contêiner são registradas no serviço AWS ECR durante a fase de compilação e recebem o nome da versão do projeto. Espera-se que a versão semântica seja gerenciada durante as solicitações de merge, manualmente ou usando ferramentas como o Github Actions.
+Além disso, as imagens de contêiner são registradas no serviço AWS ECR durante a fase de compilação e recebem o nome da versão do projeto. Espera-se que a versão semântica seja gerenciada durante a avaliação do merge request, manualmente ou usando ferramentas como o Github Actions.
 
 Por fim, todos os logs dos componentes são direcionados para o AWS Cloudwatch para registro e eventual depuração.
 
-## 5. Plano de Implementação
+## 5. Documentação da API
+> [!NOTE]  
+> Após a implantação do modelo, verifique as etapas do API Gateway para o caminho url.
+>
+> Verifique também a seção "chaves de API" do API Gateway para obter as chave de acesso.
+
+### Assinatura
+Existem duas solicitações aceitáveis:
+
+- Endpoint de Saúde: Este endpoint é usado para verificar o status de saúde do endpoint.
+    - Método: GET
+    - Parâmetros: Nenhum
+    - Autenticação: Não é necessária
+    - Resposta:
+        - Código de status: 200 OK
+        - Corpo: Verdadeiro ou Falso, dependendo do endpoint do Sagemaker
+
+- Endpoint de Inferência: Este endpoint é usado para fazer previsões usando o modelo treinado.
+    - Método: POST
+    - Parâmetros: dados (Verifique o exemplo)
+    - Autenticação: Chave de API necessária. Encontra-se nas API Keys/Chaves de API do API Gateway.
+    - Resposta:
+        - Código de status: 200 OK
+        - Corpo: [Probabilidade de fraude para cada transação]
+
+### Exemplo
+Exemplo de solicitação inferindo a probabilidade de fraude para duas transações:
+
+```
+POST https://3jo4p87xxa.execute-api.us-east-1.amazonaws.com/dev
+Content-Type: application/json
+x-api-key: XGkdd2ouZRhRx8az6UKI4ixPdsWgibbt969XqN
+Corpo:
+{
+    "data": {
+        "V1": [0.9908107245797958, 0.9948654227271336],
+        "V2": [0.7620874261804377, 0.7668768178335329],
+        "V3": [0.7745501370133644, 0.730296934431537],
+        "V4": [0.2787365158009124, 0.2559981001584685],
+        "V5": [0.5366861109059794, 0.5547206276685821],
+        "V6": [0.5221665515164394, 0.5091908610110124],
+        "V7": [0.5363425771281202, 0.5505183315220422],
+        "V8": [0.7844349282724872, 0.7805020554498278],
+        "V9": [0.5003672512969346, 0.4728323779941298],
+        "V10": [0.5106561411255969, 0.513959798462086],
+        "V11": [0.232224015839539, 0.19597500719515368],
+        "V12": [0.7052186000334467, 0.6713792910302582],
+        "V13": [0.5354840084594876, 0.419861958972384],
+        "V14": [0.6471214908091515, 0.6792986090608213],
+        "V15": [0.5250732075222956, 0.4857601048665812],
+        "V16": [0.7250152410747767, 0.695120063885401],
+        "V17": [0.7122896135410216, 0.7179361952915387],
+        "V18": [0.6658831759660492, 0.63272129603792],
+        "V19": [0.525337201682489, 0.5841998538935199],
+        "V20": [0.3880183418307714, 0.3859114064202635],
+        "V21": [0.5648802341414124, 0.561756019901421],
+        "V22": [0.5398561002540985, 0.5129812181163876],
+        "V23": [0.7045099636961798, 0.7016564651059654],
+        "V24": [0.42427060805767935, 0.3221463696453801],
+        "V25": [0.5600351842164645, 0.5918955170768184],
+        "V26": [0.4827201795229411, 0.5518684050789916],
+        "V27": [0.6492823211536717, 0.6460197182549959],
+        "V28": [0.25623548129770946, 0.2550618026528494],
+        "Amount": [0.3676971265150483, -0.109628217349857]
+    }
+}
+Resposta: [0.0037515881747243, 0.4022510714509944]
+```
+
+
+## 6. Plano de Implementação
 > [!NOTE]  
 > Testado na região us-east-1.
 
@@ -248,7 +323,7 @@ Por fim, todos os logs dos componentes são direcionados para o AWS Cloudwatch p
 > O servidor MLFlow é altamente caro no momento, desligue-o quando não estiver em uso.
 - [Conecte a AWS à conta do Github.](#AWSGithub)
     - O método mais fácil para isso no momento é simular a criação de um novo AWS Code Pipeline e parar na Etapa 2 após conectar-se ao GitHub (Versão 2). Você não precisa concluir a criação do pipeline.
-    - Essa conexão requer a criação de um aplicativo do Github com o repositório.
+    - Essa conexão requer a criação de um aplicativo do Github incluindo o repositório.
     - Anote o ARN da conexão e escreva-o no `.env`
     ![githubconnection](imgs/githubconnection.png)
 - Insira o arquivo csv de dados de origem na origem selecionada.
@@ -268,7 +343,7 @@ O script `cloudformation/install.sh` realiza a instalação das pilhas, enquanto
 > Caso a instalação da pilha falhe por qualquer motivo, exclua todas as pilhas individualmente.
 > A `storage-stack` não exclui nenhum recurso ao ser desinstalada para evitar perda de dados. Exclua manualmente, se necessário, para reinstalar esta pilha.
 
-Depois disso, basta fazer o merge para o repositório do projeto para iniciar o pipeline de integração, processar dados, treinar o modelo, avaliar e implantar o ponto de extremidade do modelo.
+Depois disso, basta fazer o merge para o repositório do projeto para iniciar o pipeline de integração, processar dados, treinar o modelo, avaliar e implantar o endpoint do modelo.
 
 ### Depuração
 A maioria das falhas possíveis pode ser localizada nos painéis dos componentes e com mais detalhes nos logs do Cloudwatch:
@@ -277,7 +352,7 @@ A maioria das falhas possíveis pode ser localizada nos painéis dos componentes
 - Erros ao acionar o pipeline do modelo são encontrados no painel de tarefas do ECS e em seus fluxos de log do Cloudwatch.
 - As falhas do Pipeline do Modelo são encontradas no Sagemaker Studio, na seção "Pipelines".
 
-## 6. Configuração
+## 7. Configuração
 ### Parâmetros
 O arquivo `config.yml` descreve várias configurações para o pipeline de MLOps, detalhando configurações para as fases de pré-processamento, treinamento, avaliação e implantação. Essas configurações são usadas tanto no Sagemaker Pipeline, sob o objeto `context`, quanto nas instalações de pilha do CloudFormation. Fundamentalmente, espera-se que essas configurações mudem menos e nunca contenham qualquer tipo de valor sensível, portanto, elas são definidas na imagem durante a fase de compilação.
 
@@ -303,7 +378,7 @@ Cada parâmetro é alocado dentro de um grupo de parâmetros, que é necessário
 - **PreprocessPysparkInstanceCount:** O número de instâncias usadas para o pré-processamento paralelo do PySpark. O cluster é configurado automaticamente.
 - **TrainRatio:** A proporção do conjunto de dados alocada para treinamento.
 - **ValidationRatio:** A proporção do conjunto de dados alocada para validação.
-- **TestRatio:** A proporção `0.2` do conjunto de dados alocada para teste.
+- **TestRatio:** A proporção do conjunto de dados alocada para teste.
 > [!IMPORTANT]  
 > A soma das proporções de treinamento, validação e teste deve ser **exatamente** igual a 1.
 
@@ -321,8 +396,8 @@ Cada parâmetro é alocado dentro de um grupo de parâmetros, que é necessário
 - **RegisterModelLambdaFunctionName:** O nome da função Lambda responsável por registrar o modelo treinado, tanto no MLFlow quanto no registro básico de modelos do Sagemaker.
 
 #### Implantação
-- **EndpointName:** Nome do ponto de extremidade. Usado como referência para solicitar inferências.
-- **DeployInstanceType:** O tipo de instância do modelo como ponto de extremidade.
+- **EndpointName:** Nome do endpoint. Usado como referência para solicitar inferências.
+- **DeployInstanceType:** O tipo de instância do modelo como endpoint.
 - **DeployModelMinCapacity:** Número mínimo de instâncias disponíveis do modelo a qualquer momento, a ser gerenciado pelo AWS Auto-Scaling. Deve ser igual ou maior que um.
 - **DeployModelMaxCapacity:** Número máximo de instâncias disponíveis do modelo a qualquer momento, a ser gerenciado pelo AWS Auto-Scaling. Deve ser maior que o mínimo.
 - **DeployLambdaFunctionName:** O nome da função Lambda responsável por implantar o modelo atualizado.
@@ -351,7 +426,7 @@ O arquivo `.env` deve ser preenchido usando o `.env.example` e possui campos obr
 - **XGBOOST_\<VARIABLE\>:** (Opcional) Qualquer variável de ambiente com esse prefixo será usada para substituir os valores padrão dos hiperparâmetros do modelo XGBoost.
 - **LGBM_\<VARIABLE\>:** (Opcional) Qualquer variável de ambiente com esse prefixo será usada para substituir os valores padrão dos hiperparâmetros do modelo LightGBM.
 
-## 7. Atualizações Futuras
+## 8. Atualizações Futuras
 ### Segregação de Contas AWS
 É recomendado pelo AWS Well Architected Framework [separar contas com base em função](#AWSAccountSegregation), criando uma barreira rígida entre os ambientes. Isso seria útil no contexto deste projeto não apenas para isolar com segurança os ambientes de desenvolvimento e produção e afirmar suas responsabilidades, mas também para manter este projeto separado de outros da corporação, evitando conflitos.
 
@@ -388,7 +463,7 @@ A integração com qualquer plataforma de observabilidade visual, como Grafana o
 - Implantação em Múltiplas Zonas: Maximizar a disponibilidade do modelo com implantação em várias zonas, evitando interrupções mesmo em condições extremas.
 - Refinamento do Gerenciamento de Acesso à API: Implementar mais opções de gerenciamento de acesso que permitam mais métodos de autenticação, como Autenticadores do API Gateway.
 
-## 8. References
+## 9. Referências
 <a id="KaggleDataset">[Kaggle Credit Fraud Dataset]</a>
 "Credit Card Fraud Detection".
 https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud (Available on 23/07/2024)
