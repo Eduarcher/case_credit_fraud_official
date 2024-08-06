@@ -1,4 +1,5 @@
 """File used for setting up the pipeline context with configurations and parameters"""
+
 import os
 import logging
 from datetime import datetime
@@ -26,15 +27,12 @@ class MLFlowContext:
     Parameters:
     - mlflow_server_arn (str): The ARN (Amazon Resource Name) of the MLFlow server.
     - run_name (str, optional): The name of the MLFlow run. Defaults to None.
-    - local_run (bool, optional): Flag indicating whether the run is local or remote. 
+    - local_run (bool, optional): Flag indicating whether the run is local or remote.
         Defaults to False.
     """
 
     def __init__(
-        self,
-        mlflow_server_arn: str,
-        run_name: str = None,
-        local_run: bool = False
+        self, mlflow_server_arn: str, run_name: str = None, local_run: bool = False
     ):
         self.server_arn = mlflow_server_arn
         if not local_run:
@@ -50,7 +48,8 @@ class LambdaFunctionsContext:
 
     Attributes:
         client: The Boto3 client for Lambda.
-        register_model_func_name: The name of the Lambda function used for registering models.
+        register_model_func_name: The name of the Lambda function used 
+            for registering models.
         deploy_func_name: The name of the Lambda function used for deploying models.
 
     Args:
@@ -60,7 +59,9 @@ class LambdaFunctionsContext:
 
     def __init__(self, cfg, region: str = None):
         self.client = boto3.client("lambda", region_name=region)
-        self.register_model_func_name = cfg["Registry"]["RegisterModelLambdaFunctionName"]
+        self.register_model_func_name = cfg["Registry"][
+            "RegisterModelLambdaFunctionName"
+        ]
         self.deploy_func_name = cfg["Deployment"]["DeployLambdaFunctionName"]
 
 
@@ -83,12 +84,14 @@ class CreditFraudPipelineContext(PipelineSession):
         rds_secret_name: Name of the RDS secret.
         s3_raw_data_key: Key for the raw credit card data in S3.
         processed_train_data_folder: Folder for storing processed training data in S3.
-        processed_validation_data_folder: Folder for storing processed validation data in S3.
+        processed_validation_data_folder: Folder for storing processed 
+            validation data in S3.
         processed_test_data_folder: Folder for storing processed test data in S3.
         training_algorithm: Training algorithm of the ML model.
         s3_script_manager: S3ScriptManager object for managing scripts in S3.
         mlflow: MLFlowContext object for managing MLflow runs.
-        lambda_functions: LambdaFunctionsContext object for managing AWS Lambda functions.
+        lambda_functions: LambdaFunctionsContext object for managing 
+            AWS Lambda functions.
 
     Methods:
         __set_execution_name: Sets the execution name for the pipeline.
@@ -105,26 +108,26 @@ class CreditFraudPipelineContext(PipelineSession):
 
         self.logger.info("Loading environment variables from .env file.")
         is_env_loaded = load_dotenv(f"{os.getcwd()}/.env", override=True)
-        self.logger.info(f"Environment variables from .env files are loaded: {is_env_loaded}")
+        self.logger.info(
+            f"Environment variables from .env files are loaded: {is_env_loaded}"
+        )
         self.logger.debug(f"Current Environment: {os.environ}")
 
         super().__init__(
             default_bucket=os.environ.get("AWS_SAGEMAKER_S3_BUCKET_NAME", None),
             default_bucket_prefix=os.environ.get(
-                "AWS_SAGEMAKER_S3_BUCKET_FOLDER_PREFIX",
-                "case-credit-fraud"
+                "AWS_SAGEMAKER_S3_BUCKET_FOLDER_PREFIX", "case-credit-fraud"
             ),
         )
 
-        self.account_id = boto3.client('sts').get_caller_identity().get('Account')
+        self.account_id = boto3.client("sts").get_caller_identity().get("Account")
         self.region = os.environ.get("AWS_REGION", self.boto_region_name)
         self.sagemaker_role = os.environ.get(
             "AWS_SAGEMAKER_ROLE_IAM",
-            f"arn:aws:iam::{self.account_id}:role/service-role/SageMakerExecutionRole"
+            f"arn:aws:iam::{self.account_id}:role/service-role/SageMakerExecutionRole",
         )
         self.bucket_name = os.environ.get(
-            "AWS_SAGEMAKER_S3_BUCKET_NAME",
-            self.default_bucket()
+            "AWS_SAGEMAKER_S3_BUCKET_NAME", self.default_bucket()
         )
         self.bucket_folder_prefix = os.environ.get(
             "AWS_SAGEMAKER_S3_BUCKET_FOLDER_PREFIX", self.default_bucket_prefix
@@ -133,14 +136,21 @@ class CreditFraudPipelineContext(PipelineSession):
 
         self.rds_host_url = os.environ.get("RDS_HOST_URL")
         self.rds_secret_name = os.environ.get("RDS_SECRET_NAME")
-        self.s3_raw_data_key = os.environ.get("S3_RAW_DATA_KEY", f"{self.bucket_folder}/raw/creditcard.csv")
-        self.processed_train_data_folder = f"{self.bucket_folder}/runs/{self.execution_name}/processed/train.parquet"
-        self.processed_validation_data_folder = f"{self.bucket_folder}/runs/{self.execution_name}/processed/validation.parquet"
-        self.processed_test_data_folder = f"{self.bucket_folder}/runs/{self.execution_name}/processed/test.parquet"
+        self.s3_raw_data_key = os.environ.get(
+            "S3_RAW_DATA_KEY", f"{self.bucket_folder}/raw/creditcard.csv"
+        )
+        self.processed_train_data_folder = (
+            f"{self.bucket_folder}/runs/{self.execution_name}/processed/train.parquet"
+        )
+        self.processed_validation_data_folder = (
+            f"{self.bucket_folder}/runs/{self.execution_name}/processed/validation.parquet"
+        )
+        self.processed_test_data_folder = (
+            f"{self.bucket_folder}/runs/{self.execution_name}/processed/test.parquet"
+        )
 
         self.training_algorithm = os.environ.get(
-            "TRAINING_ALGORITHM",
-            str(self.cfg["Training"]["DefaultTrainingAlgorithm"])
+            "TRAINING_ALGORITHM", str(self.cfg["Training"]["DefaultTrainingAlgorithm"])
         )
         self.__init_model_params()
 
@@ -148,7 +158,7 @@ class CreditFraudPipelineContext(PipelineSession):
             region=self.region,
             destination_bucket_name=self.bucket_name,
             destination_folder=f"{self.bucket_folder_prefix}/runs/{self.execution_name}/scripts",
-            logger=logger
+            logger=logger,
         )
 
         self.__init_pipeline_params(args)
@@ -156,7 +166,7 @@ class CreditFraudPipelineContext(PipelineSession):
         self.mlflow = MLFlowContext(
             mlflow_server_arn=os.environ.get("MLFLOW_ARN"),
             run_name=self.execution_name,
-            local_run=args.local_run
+            local_run=args.local_run,
         )
 
         self.lambda_functions = LambdaFunctionsContext(cfg=self.cfg, region=self.region)
@@ -168,7 +178,7 @@ class CreditFraudPipelineContext(PipelineSession):
         The execution name must satisfy the regex pattern:
         ^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,81}
         """
-        tz = pytz.timezone('America/Sao_Paulo')
+        tz = pytz.timezone("America/Sao_Paulo")
         self.execution_name = (
             f"v{PyProjectHelper.get_version()}--{datetime.now(tz).strftime('%Y%m%d-%H%M%S')}"
             .replace(".", "-")
@@ -184,35 +194,35 @@ class CreditFraudPipelineContext(PipelineSession):
         self.pipeline_params = {
             "preprocess_train_ratio": ParameterString(
                 name="PreprocessTrainRatio",
-                default_value=str(self.cfg["Preprocess"]["TrainRatio"])
+                default_value=str(self.cfg["Preprocess"]["TrainRatio"]),
             ),
             "preprocess_validation_ratio": ParameterString(
                 name="PreprocessValidationRatio",
-                default_value=str(self.cfg["Preprocess"]["ValidationRatio"])
+                default_value=str(self.cfg["Preprocess"]["ValidationRatio"]),
             ),
             "preprocess_test_ratio": ParameterString(
                 name="PreprocessTestRatio",
-                default_value=str(self.cfg["Preprocess"]["TestRatio"])
+                default_value=str(self.cfg["Preprocess"]["TestRatio"]),
             ),
             "roc_auc_min_threshold": ParameterFloat(
                 name="ROCAUCMinThreshold",
-                default_value=float(self.cfg["Evaluation"]["ROCAUCMinThreshold"])
-            )
+                default_value=float(self.cfg["Evaluation"]["ROCAUCMinThreshold"]),
+            ),
         }
 
     def __init_model_params(self):
         """
         Initializes the model parameters based on the training algorithm.
 
-        If the training algorithm is 'xgboost' or 'xgb', 
+        If the training algorithm is 'xgboost' or 'xgb',
             it loads the model parameters from the 'xgboost_default.json' file.
-        If the training algorithm is 'lightgbm' or 'lgbm', 
+        If the training algorithm is 'lightgbm' or 'lgbm',
             it loads the model parameters from the 'lgbm_default.json' file.
         Otherwise, it raises an InvalidAlgorithmFramework exception.
 
-        After loading the default model parameters, it checks for any 
+        After loading the default model parameters, it checks for any
             environment variables that match the model parameter prefix
-        (either 'XGBOOST_' or 'LIGHTGBM_') and updates the corresponding 
+        (either 'XGBOOST_' or 'LIGHTGBM_') and updates the corresponding
             model parameter with the environment variable value.
 
         Finally, it logs the model parameters.
@@ -222,11 +232,11 @@ class CreditFraudPipelineContext(PipelineSession):
         """
         if self.training_algorithm.lower() in ["xgboost", "xgb"]:
             model_param_prefix = "XGBOOST_"
-            with open('./models/xgboost_default.json', 'r') as file:
+            with open("./models/xgboost_default.json", "r") as file:
                 self.model_params = json.load(file)
         elif self.training_algorithm.lower() in ["lightgbm", "lgbm"]:
             model_param_prefix = "LIGHTGBM_"
-            with open('./models/lgbm_default.json', 'r') as file:
+            with open("./models/lgbm_default.json", "r") as file:
                 self.model_params = json.load(file)
         else:
             raise InvalidAlgorithmFramework(self.training_algorithm)

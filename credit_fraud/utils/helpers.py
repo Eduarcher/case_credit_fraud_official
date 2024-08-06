@@ -15,7 +15,9 @@ class PyProjectHelper:
             if python_version:
                 return python_version
             else:
-                raise ValueError("Project version not found inside pyproject.toml file.")
+                raise ValueError(
+                    "Project version not found inside pyproject.toml file."
+                )
 
 
 class EnvironHelper:
@@ -30,7 +32,7 @@ class S3ScriptManager:
         region: str,
         destination_bucket_name: str,
         destination_folder: str,
-        logger=logging
+        logger=logging,
     ):
         self.logger = logger
         self.region = region
@@ -43,7 +45,7 @@ class S3ScriptManager:
         res = self.s3_client.upload_file(
             Filename=f"{source_directory}/{script_name}",
             Bucket=self.destination_bucket_name,
-            Key=f"{self.destination_folder}/{script_name}"
+            Key=f"{self.destination_folder}/{script_name}",
         )
         return res
 
@@ -55,8 +57,7 @@ class SecretManager:
     def __init__(self, region_name="us-east-1", logger=logging):
         session = boto3.session.Session()
         self.client = session.client(
-            service_name="secretsmanager",
-            region_name=region_name
+            service_name="secretsmanager", region_name=region_name
         )
         self.logger = logger
 

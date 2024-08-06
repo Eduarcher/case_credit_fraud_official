@@ -49,22 +49,21 @@
 8. [References](#8-references)
 
 ## 1. Introduction
-Machine learning algorithms offer means to analyze historical transaction data, identify patterns and detect anomalies indicative of fraudulent activities. These algorithms utilize features such as transaction amount, location, time, merchant details, and customer behavior to train models capable of distinguishing between legitimate and fraudulent transactions
+Machine learning algorithms offer means to analyze historical transaction data, identify patterns and detect anomalies indicative of fraudulent activities. These algorithms utilize features such as transaction amount, location, time, merchant details, history and customer behavior to train models capable of distinguishing between legitimate and fraudulent transactions
 
 This document details the end-to-end Machine Learning Operations (MLOps) project designed for credit fraud detection. Will be described in detail the architecture and workflow of the project, which leverages AWS Cloud components, particularly Amazon SageMaker Pipelines, to automate and orchestrate the machine learning workflow.
 
-The goal of this project is to provide a robust and scalable solution for credit fraud detection, incorporating Continuous Integration/Continuous Deployment (CI/CD), API deployment, and artifact management. By utilizing AWS services such as CodePipeline, CodeBuild, SageMaker, and API Gateway, this project ensure a seamless and efficient process from data sourcing to model deployment.
 
 Throughout this documentation, will be covered the key components and features of the project, the workflow involved, and the organization of the dataset used for training. Also, will be presented discussions over the project's architecture, including the technological justification for choosing AWS as the cloud provider.
 
 ### Overview
-This document presents the architecture and workflow of an end-to-end Machine Learning Operations (MLOps) project designed for credit fraud detection. The project leverages AWS Cloud components, esecially Amazon SageMaker Pipelines, to automate and orchestrate the machine learning workflow from data sourcing to model deployment. It incorporates Continuous Integration/Continuous Deployment (CI/CD), API deployment, and artifact management to ensure a robust and scalable solution.
+This document presents the architecture and workflow of an end-to-end Machine Learning Operations (MLOps) project designed for credit fraud detection. The project leverages AWS Cloud components, esecially Amazon SageMaker Pipelines, CodePipeline, CodeBuild and API Gateway to automate and orchestrate the machine learning workflow from data sourcing to model deployment. It incorporates Continuous Integration/Continuous Deployment (CI/CD), API deployment, and artifact management to ensure a robust and scalable solution.
 
 ### Key Components and Features
 - [x] Data Sourcing: Data is sourced from Amazon RDS or S3
 - [x] Artifact and Data Management: S3 serves as the primary persistent storage solution.
 - [x] Model Training: Supports training with XGBoost and LightGBM models.
-- [x] CI/CD: Utilizes AWS CodePipeline and CodeBuild, integrating with git providers for continuous integration and deployment.
+- [x] CI/CD: Utilizes AWS CodePipeline and CodeBuild, integrating with Githubs for continuous integration and deployment.
 - [x] Unit Testing: Enable automatic unit tests with CodeBuild and PyTest.
 - [x] Docker: Build Docker image for configuring and triggering SageMaker Pipeline steps and jobs, assuring stability and reproducibility.
 - [x] SageMaker Pipeline Steps: Includes data preprocessing with Spark, model training, model evaluation (metrics estimation), SageMaker model creation, model registration with MLFlow (including metrics), and model deployment.
@@ -72,13 +71,15 @@ This document presents the architecture and workflow of an end-to-end Machine Le
 - [x] API Endpoint Deployment: Deploys endpoints for APIs to interact with the trained models using AWS API Gateway.
 - [x] Security and Authentication: Includes essential credential validations, role based access with AWS IAM.
 - [x] Logging and Pipeline Monitoring: AWS CloudWatch allows for full log observability of every component.
+- [X] Automatic Execution: Regular training with Eventbridge Scheduler. 
+
 
 ### Workflow
 - CI/CD Pipeline:
     - Automatically tracks merges on the target branch
     - AWS CodePipeline is used to automate the integration and deployment process.
     - A Docker image is built to manage SageMaker Pipeline steps.
-- Full ML Model Containerized Job:
+- Full Containerized ML Model Job:
     - AWS ECS runs the container on code updates or regular schedules with AWS EventBridge Scheduler
 - Data Sourcing and Preprocessing: 
     - Data is sourced from Amazon RDS or S3.
@@ -109,7 +110,6 @@ This dataset features are organized as the following schema:
 | Time    | V1    | V2    | ... | V28   | Amount          | Class          |
 | ------- | ----- | ----- | --- | ----- | --------------- | -------------  |
 | Integer | Float | Float |     | Float | Unsigned Float  | Binary integer |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 
 Where the columns can be further described as: 
 - Time (int): Time in number of seconds elapsed between this transaction and the first transaction in the dataset, starting at 0 and ending in 172792. Ordered, positive and not unique.
@@ -141,7 +141,6 @@ This project is fully developed for AWS Cloud deployment and integration, includ
 - buildspec.yml: Setup for building the image on the continuous integration pipeline. This file is usually managed in a separated repository.
 - .env: Default environment variables used on the project.
 - credit_fraud: Source code for the credit-fraud package, including the Sagemaker pipeline configurations, jobs definitions, context functions and helpers.
-- hooks: Scripts to be executed outside the credit-fraud package run scope.
 - cloudformation: IaaC scripts and templates.
 - tests: Unit tests used on the continuous integration phase
 - models: Default models params directory, to be used when environment variables are left undefined.

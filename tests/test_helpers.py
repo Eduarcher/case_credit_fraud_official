@@ -2,30 +2,28 @@ import os
 
 import pytest
 from unittest.mock import patch, mock_open
-from botocore.stub import Stubber
-import boto3
 import credit_fraud.utils.helpers as helpers
 
 
 def test_get_version_success():
-    mocked_content = '''
+    mocked_content = """
     [project]
     name = "Mocked Project"
     version = "1.0.0"
-    '''
-    with patch('builtins.open', mock_open(read_data=mocked_content)) as mock_file:
+    """
+    with patch("builtins.open", mock_open(read_data=mocked_content)) as mock_file:
         version = helpers.PyProjectHelper.get_version("pyproject.toml")
         assert version == "1.0.0"
         mock_file.assert_called_once_with("pyproject.toml", "r")
 
 
 def test_get_version_fail():
-    mocked_content = '''
+    mocked_content = """
     [project]
     name = "Mocked Project"
-    '''
+    """
     with pytest.raises(ValueError) as _:
-        with patch('builtins.open', mock_open(read_data=mocked_content)) as _:
+        with patch("builtins.open", mock_open(read_data=mocked_content)) as _:
             helpers.PyProjectHelper.get_version("pyproject.toml")
 
 
@@ -49,4 +47,3 @@ def test_S3ScriptManager_instance(mocker):
     assert script_manager.destination_folder == "dest-folder"
     assert script_manager.logger
     assert type(script_manager.get_script_uri("test.py")) is str
-

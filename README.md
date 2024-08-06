@@ -1,4 +1,4 @@
-# Caso de Uso de Machine Learning de Ponta a Ponta: Fraude de Crédito
+# Case de Machine Learning End-to-End: Fraude de Crédito
 ## Índice
 1. [Introdução](#1-introdução)
     - [Visão Geral](#visão-geral)
@@ -49,34 +49,35 @@
 8. [Referências](#8-referências)
 
 ## 1. Introdução
-Algoritmos de machine learning oferecem meios para analisar dados históricos de transações, identificar padrões e detectar anomalias indicativas de atividades fraudulentas. Esses algoritmos utilizam características como valor da transação, localização, horário, detalhes do comerciante e comportamento do cliente para treinar modelos capazes de distinguir entre transações legítimas e fraudulentas.
+Algoritmos de machine learning oferecem meios para analisar dados históricos de transações, identificar padrões e detectar anomalias indicativas de atividades fraudulentas. Esses algoritmos utilizam características como valor da transação, localização, horário, detalhes do comerciante, histórico e comportamento do cliente para treinar modelos capazes de distinguir entre transações legítimas e fraudulentas.
 
 Este documento detalha o projeto de Operações de Machine Learning (MLOps) de ponta a ponta, projetado para a detecção de fraudes em crédito. Serão descritos em detalhes a arquitetura e o fluxo de trabalho do projeto, que aproveita componentes da AWS Cloud, particularmente Amazon SageMaker Pipelines, para automatizar e orquestrar o fluxo de trabalho de machine learning.
 
-O objetivo deste projeto é fornecer uma solução robusta e escalável para a detecção de fraudes em crédito, incorporando Integração Contínua/Implantação Contínua (CI/CD), implantação de API e gerenciamento de artefatos. Utilizando serviços da AWS como CodePipeline, CodeBuild, SageMaker e API Gateway, este projeto garante um processo contínuo e eficiente desde a obtenção de dados até a implantação do modelo.
-
 Ao longo desta documentação, serão abordados os componentes e funcionalidades principais do projeto, o fluxo de trabalho envolvido e a organização do conjunto de dados utilizado para treinamento. Também serão apresentadas discussões sobre a arquitetura do projeto, incluindo a justificativa tecnológica para a escolha da AWS como provedor de nuvem.
+
 ### Visão Geral
-Este documento apresenta a arquitetura e o fluxo de trabalho de um projeto de Operações de Machine Learning (MLOps) de ponta a ponta, projetado para a detecção de fraudes em crédito. O projeto aproveita componentes da AWS Cloud, especialmente Amazon SageMaker Pipelines, para automatizar e orquestrar o fluxo de trabalho de machine learning desde a obtenção de dados até a implantação do modelo. Ele incorpora Integração Contínua/Implantação Contínua (CI/CD), implantação de API e gerenciamento de artefatos para garantir uma solução robusta e escalável.
+Este documento apresenta a arquitetura e o fluxo de trabalho de um projeto de Operações de Machine Learning (MLOps) de ponta a ponta, projetado para a detecção de fraudes em crédito. O projeto aproveita componentes da AWS Cloud, especialmente Amazon SageMaker Pipelines, CodePipeline, CodeBuild e API Gateway para automatizar e orquestrar o fluxo de trabalho de machine learning desde a obtenção de dados até a implantação do modelo. Ele incorpora Integração Contínua/Implantação Contínua (CI/CD), implantação de API e gerenciamento de artefatos para garantir uma solução robusta e escalável.
 
 ### Componentes e Funcionalidades Principais
 - [x] Obtenção de Dados: Dados são obtidos do Amazon RDS ou S3.
 - [x] Gerenciamento de Artefatos e Dados: S3 serve como a principal solução de armazenamento persistente.
 - [x] Treinamento de Modelos: Suporta treinamento com modelos XGBoost e LightGBM.
-- [x] CI/CD: Utiliza AWS CodePipeline e CodeBuild, integrando com provedores de git para integração e implantação contínuas.
+- [x] CI/CD: Utiliza AWS CodePipeline e CodeBuild, integrando com Github para integração e implantação contínuas.
 - [x] Testes Unitários: Habilita testes unitários automáticos com CodeBuild e PyTest.
-- [x] Docker: Constrói imagem Docker para configurar e acionar etapas e trabalhos do SageMaker Pipeline, garantindo estabilidade e reprodutibilidade.
+- [x] Docker: Constrói imagem Docker para configurar e acionar etapas e jobs do SageMaker Pipeline, garantindo estabilidade e reprodutibilidade.
 - [x] Etapas do Pipeline do SageMaker: Inclui pré-processamento de dados com Spark, treinamento de modelos, avaliação de modelos (estimativa de métricas), criação de modelos SageMaker, registro de modelos com MLFlow (incluindo métricas) e implantação de modelos.
 - [x] Implantação Automática: Atualiza automaticamente e com segurança a implantação do modelo em execução com capacidades de Auto-Scaling da AWS usando a estratégia Canary.
 - [x] Implantação de Endpoint de API: Implanta endpoints para APIs interagirem com os modelos treinados usando AWS API Gateway.
-- [x] Segurança e Autenticação: Inclui validações essenciais de credenciais, acesso baseado em funções com AWS IAM.
+- [x] Segurança e Autenticação: Inclui validações essenciais de credenciais, acesso baseado em roles com AWS IAM.
 - [x] Monitoramento de Logs e Pipeline: AWS CloudWatch permite a observabilidade completa dos logs de cada componente.
+- [X] Execução automática: Treinamentos regulares com Eventbridge Scheduler. 
+
 ### Fluxo de Trabalho
 - Pipeline de CI/CD:
-    - Acompanha automaticamente merges no branch alvo.
+    - Acompanha automaticamente merges na branch alvo.
     - AWS CodePipeline é usado para automatizar o processo de integração e implantação.
     - Uma imagem Docker é construída para gerenciar as etapas do SageMaker Pipeline.
-- Trabalho Completo de Modelo de ML Containerizado:
+- Job de Modelo de ML Containerizado:
     - AWS ECS executa o contêiner em atualizações de código ou agendas regulares com AWS EventBridge Scheduler.
 - Obtenção e Pré-processamento de Dados:
     - Dados são obtidos do Amazon RDS ou S3.
@@ -107,7 +108,6 @@ As características deste conjunto de dados são organizadas conforme o seguinte
 | Tempo   | V1    | V2    | ... | V28   | Quantidade      | Classe         |
 | ------- | ----- | ----- | --- | ----- | --------------- | -------------  |
 | Integer | Float | Float |     | Float | Float Unsigned | Integer Non-Binary |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 
 Onde as colunas podem ser descritas da seguinte forma:
 - Tempo (Integer): Tempo em número de segundos decorridos entre esta transação e a primeira transação no conjunto de dados, começando em 0 e terminando em 172792. Ordenado, positivo e não único.
@@ -138,8 +138,7 @@ Este projeto é totalmente desenvolvido para implantação e integração na AWS
 - testspec.yml: Configuração para testes unitários no pipeline de integração contínua. Este arquivo geralmente é gerenciado em um repositório separado.
 - buildspec.yml: Configuração para a construção da imagem no pipeline de integração contínua. Este arquivo geralmente é gerenciado em um repositório separado.
 - .env: Variáveis de ambiente padrão usadas no projeto.
-- credit_fraud: Código-fonte para o pacote credit-fraud, incluindo as configurações do pipeline do Sagemaker, definições de jobs, funções de contexto e ajudantes.
-- hooks: Scripts a serem executados fora do escopo de execução do pacote credit-fraud.
+- credit_fraud: Código-fonte para o pacote credit-fraud, incluindo as configurações do pipeline do Sagemaker, definições de jobs, funções de contexto e helpers.
 - cloudformation: Scripts e modelos de IaaC (Infraestrutura como Código).
 - tests: Testes unitários usados na fase de integração contínua.
 - models: Diretório de parâmetros de modelos padrão, a ser usado quando as variáveis de ambiente não forem definidas.
@@ -216,7 +215,7 @@ Ao invocar a função de implantação na etapa final do Pipeline do Sagemaker, 
 Os dois componentes finais da implantação são a função AWS Lambda de inferência e o AWS API Gateway, ambos sem servidor e, portanto, altamente escaláveis. Enquanto o API Gateway é uma API de roteador que funciona como o acesso público para os usuários, ele atua como um proxy e direciona as solicitações para a função Lambda, incluindo o corpo contendo os dados de entrada para a avaliação do modelo. Essa função Lambda é responsável pelo processamento de acordo com a interface do endpoint, que pode variar entre o modelo escolhido (XGBoost ou LGBM), e pela invocação do endpoint específico. A resposta resultante é processada e retornada ao cliente.
 
 #### Gerenciamento de Acesso
-O acesso baseado em função do AWS IAM autoriza os componentes a realizar as operações necessárias. O acesso ao ponto de extremidade do modelo é autenticado usando credenciais da AWS. As funções de acesso e as políticas são criadas usando o CloudFormation para este caso, mas em um ambiente de produção real, elas devem ser gerenciadas pela equipe de segurança e autorização. Idealmente, as funções criadas incluem apenas as políticas necessárias para autorizar suas ações e responsabilidades esperadas.
+O acesso baseado em roles do AWS IAM autoriza os componentes a realizar as operações necessárias. O acesso ao ponto de extremidade do modelo é autenticado usando credenciais da AWS. As funções de acesso e as políticas são criadas usando o CloudFormation para este caso, mas em um ambiente de produção real, elas devem ser gerenciadas pela equipe de segurança e autorização. Idealmente, as roles criadas incluem apenas as políticas necessárias para autorizar suas ações e responsabilidades esperadas.
 
 O acesso à API é limitado à chave de API criada automaticamente com o CloudFormation e disponível no console de gerenciamento do AWS API Gateway. Esse método de segurança, além de ser simples, é eficaz, seguro e está associado ao plano de uso que controla o uso da chave e limita sua taxa de solicitação. Novas chaves podem ser geradas, se necessário.
 

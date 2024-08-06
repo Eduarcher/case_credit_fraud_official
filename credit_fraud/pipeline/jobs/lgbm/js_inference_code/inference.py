@@ -29,7 +29,12 @@ def model_fn(model_dir: str) -> Union[Booster, LGBMClassifier]:
         raise
 
 
-def transform_fn(task: Union[Booster, LGBMClassifier], input_data: Any, content_type: str, accept: str) -> np.array:
+def transform_fn(
+    task: Union[Booster, LGBMClassifier],
+    input_data: Any,
+    content_type: str,
+    accept: str,
+) -> np.array:
     """Make predictions against the model and return a serialized response.
 
     The function signature conforms to the SM contract.
@@ -56,11 +61,15 @@ def transform_fn(task: Union[Booster, LGBMClassifier], input_data: Any, content_
                 data.columns = task.feature_name_
                 model_output = task.predict_proba(data, num_iteration=best_iteration)
             output = {}
-            if model_output.ndim == 1:  # Binary classification prediction from lightgbm.Booster object
+            if (
+                model_output.ndim == 1
+            ):  # Binary classification prediction from lightgbm.Booster object
                 output[constants.PROBABILITIES_1D] = model_output.reshape((-1, 1))
                 # Converting it into a 2-dimensional array to keep it consistent with catboost and sklearn
                 model_output = np.vstack((1.0 - model_output, model_output)).transpose()
-            if model_output.ndim == 2:  # Binary classification prediction from lightgbm.LGBMClassifier object
+            if (
+                model_output.ndim == 2
+            ):  # Binary classification prediction from lightgbm.LGBMClassifier object
                 output[constants.PROBABILITIES_1D] = model_output[:, 1:]
             output[constants.PROBABILITIES] = model_output
             if accept.endswith(constants.VERBOSE_EXTENSION):
@@ -71,4 +80,6 @@ def transform_fn(task: Union[Booster, LGBMClassifier], input_data: Any, content_
         except Exception:
             logging.exception("Failed to do transform")
             raise
-    raise ValueError('{{"error": "unsupported content type {}"}}'.format(content_type or "unknown"))
+    raise ValueError(
+        '{{"error": "unsupported content type {}"}}'.format(content_type or "unknown")
+    )

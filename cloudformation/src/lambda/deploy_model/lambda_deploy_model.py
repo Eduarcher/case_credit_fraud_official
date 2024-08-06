@@ -1,7 +1,9 @@
 """
-Lambda function creates an endpoint configuration and deploys a model to real-time endpoint.
+Lambda function creates an endpoint configuration 
+and deploys a model to real-time endpoint.
 Required parameters for deployment are retrieved from the event object
 """
+
 import json
 import os
 import logging
@@ -36,9 +38,9 @@ def _create_endpoint_config(sm_client, event):
                 "ModelName": event["model_name"],
                 "InitialInstanceCount": MODEL_MIN_CAPACITY,
                 "InstanceType": event["instance_type"],
-                "InitialVariantWeight": 1
+                "InitialVariantWeight": 1,
             }
-        ]
+        ],
     )
     return endpoint_config_name
 
@@ -51,16 +53,13 @@ def _update_endpoint(sm_client, event, endpoint_config_name):
             "BlueGreenUpdatePolicy": {
                 "TrafficRoutingConfiguration": {
                     "Type": "CANARY",
-                    "CanarySize": {
-                        "Type": "CAPACITY_PERCENT",
-                        "Value": 50
-                    },
-                    "WaitIntervalInSeconds": 300
+                    "CanarySize": {"Type": "CAPACITY_PERCENT", "Value": 50},
+                    "WaitIntervalInSeconds": 300,
                 },
                 "TerminationWaitInSeconds": 300,
-                "MaximumExecutionTimeoutInSeconds": 1800
+                "MaximumExecutionTimeoutInSeconds": 1800,
             }
-        }
+        },
     )
     return True
 
@@ -87,8 +86,8 @@ def _apply_autoscaling(as_client, event):
                 "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance",
             },
             "ScaleInCooldown": 600,
-            "ScaleOutCooldown": 300
-        }
+            "ScaleOutCooldown": 300,
+        },
     )
     return True
 
@@ -112,8 +111,7 @@ def lambda_handler(event, context):
             raise
         logger.warning("Endpoint not found! Creating new endpoint")
         sm_client.create_endpoint(
-            EndpointName=event["endpoint_name"],
-            EndpointConfigName=endpoint_config_name
+            EndpointName=event["endpoint_name"], EndpointConfigName=endpoint_config_name
         )
         _await_endpoint(sm_client, event)
         logger.info("Endpoint created successfully!")

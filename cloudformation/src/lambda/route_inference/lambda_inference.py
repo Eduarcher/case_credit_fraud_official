@@ -31,45 +31,37 @@ def _parse_response(query_response):
         model_predictions_lists = json.loads(query_body)["probabilities-1d"]
         model_predictions = reduce(add, model_predictions_lists)
     else:
-        body_decoded_list = query_body.decode("utf-8").split('\n')
+        body_decoded_list = query_body.decode("utf-8").split("\n")
         model_predictions = [float(num) for num in body_decoded_list if num]
     return model_predictions
 
 
 def lambda_handler(event: dict, context: Any = None):
-    client = boto3.client('runtime.sagemaker')
+    client = boto3.client("runtime.sagemaker")
 
     data_body = ast.literal_eval(event["body"])
     if type(data_body) is not dict or "data" not in data_body.keys():
         return {
             "statusCode": 400,
-            "headers": {
-                "Content-Type": "*/*"
-            },
-            "body": "Invalid data on the request body."
+            "headers": {"Content-Type": "*/*"},
+            "body": "Invalid data on the request body.",
         }
 
     try:
         payload = _dict_to_csv_bytes(data_body)
         response = client.invoke_endpoint(
-            EndpointName=ENDPOINT_NAME,
-            Body=payload,
-            ContentType="text/csv"
+            EndpointName=ENDPOINT_NAME, Body=payload, ContentType="text/csv"
         )
         preds = _parse_response(response)
         response = {
             "statusCode": 200,
-            "headers": {
-                "Content-Type": "*/*"
-            },
-            "body": str(preds)
+            "headers": {"Content-Type": "*/*"},
+            "body": str(preds),
         }
         return response
     except Exception:
         return {
             "statusCode": 500,
-            "headers": {
-                "Content-Type": "*/*"
-            },
-            "body": "An error occurred while processing the request."
+            "headers": {"Content-Type": "*/*"},
+            "body": "An error occurred while processing the request.",
         }

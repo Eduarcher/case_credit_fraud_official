@@ -1,4 +1,5 @@
 """Evaluation job responsible for automatically evaluating the model metrics."""
+
 import json
 import logging
 import pathlib
@@ -24,17 +25,12 @@ def install_dependencies(model_algorithm):
         global xgb
         import xgboost as xgb
     elif model_algorithm == "lgbm":
-        subprocess.check_call([
-            sys.executable,
-            "-m", "pip", "install",
-            "lightgbm==4.1.0"
-        ])
-    subprocess.check_call([
-        sys.executable,
-        "-m", "pip", "install",
-        "mlflow>=2.13",
-        "sagemaker-mlflow"
-    ])
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "lightgbm==4.1.0"]
+        )
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "mlflow>=2.13", "sagemaker-mlflow"]
+    )
     global mlflow
     import mlflow
 
@@ -81,7 +77,7 @@ if __name__ == "__main__":
             "True Negative": {"value": str(cm[0][0])},
             "False Positive": {"value": str(cm[0][1])},
             "False Negative": {"value": str(cm[1][0])},
-            "True Positive": {"value": str(cm[1][1])}
+            "True Positive": {"value": str(cm[1][1])},
         }
     }
 
@@ -101,5 +97,4 @@ if __name__ == "__main__":
     mlflow.log_metric("Test/False-Positive", f_p)
     mlflow.log_metric("Test/False-Negative", f_n)
     mlflow.log_metric("Test/True-Positive", t_p)
-    mlflow.log_dict(np.array(cm).tolist(), "confusion_matrix_test.json")
     mlflow.end_run()

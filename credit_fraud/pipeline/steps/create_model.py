@@ -15,6 +15,7 @@ class CreateModelStepJob(Step):
         context (CreditFraudPipelineContext): The context object for the pipeline.
         image_uri (str): The URI of the Docker image for the model.
     """
+
     def __init__(self, context: CreditFraudPipelineContext, image_uri):
         self.context = context
         self.image_uri = image_uri
@@ -33,7 +34,7 @@ class CreateModelStepJob(Step):
             image_uri=self.image_uri,
             model_data=model_artifact_s3_uri,
             sagemaker_session=self.context,
-            role=self.context.sagemaker_role
+            role=self.context.sagemaker_role,
         )
         inputs = CreateModelInput(
             instance_type=self.context.cfg["Deployment"]["DeployInstanceType"]

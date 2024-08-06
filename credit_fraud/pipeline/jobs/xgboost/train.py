@@ -1,4 +1,5 @@
 """Training job for XGBoost framework."""
+
 import argparse
 import os
 import logging
@@ -19,13 +20,16 @@ logger.addHandler(logging.StreamHandler())
 
 def install_extra_dependencies():
     logger.info("Attempting to extra dependencies")
-    subprocess.check_call([
-        sys.executable,
-        "-m", "pip", "install",
-        "-r", "./requirements.txt",
-        # "./mlflow-2.14.1-py3-none-any.whl",
-        # "./sagemaker_mlflow-0.1.0-py3-none-any.whl"
-    ])
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            "./requirements.txt",
+        ]
+    )
     global mlflow
     import mlflow
 
@@ -40,11 +44,21 @@ if __name__ == "__main__":
     parser.add_argument("--eta", type=float, default=0.2)
     parser.add_argument("--nfold", type=int, default=3)
     parser.add_argument("--early_stopping_rounds", type=int, default=3)
-    parser.add_argument("--train_data_path", type=str, default=os.environ.get("SM_CHANNEL_TRAIN_DATA_PATH"))
-    parser.add_argument("--validation_data_path", type=str, default=os.environ.get("SM_CHANNEL_VALIDATION_DATA_PATH"))
+    parser.add_argument(
+        "--train_data_path",
+        type=str,
+        default=os.environ.get("SM_CHANNEL_TRAIN_DATA_PATH"),
+    )
+    parser.add_argument(
+        "--validation_data_path",
+        type=str,
+        default=os.environ.get("SM_CHANNEL_VALIDATION_DATA_PATH"),
+    )
     parser.add_argument("--model_dir", type=str, default=os.environ.get("SM_MODEL_DIR"))
     parser.add_argument("--mlflow-arn", type=str, default=os.environ.get("MLFLOW_ARN"))
-    parser.add_argument("--mlflow-run-id", type=str, default=os.environ.get("MLFLOW_RUN_ID"))
+    parser.add_argument(
+        "--mlflow-run-id", type=str, default=os.environ.get("MLFLOW_RUN_ID")
+    )
     args = parser.parse_args()
 
     # Start an MLflow run
@@ -72,7 +86,7 @@ if __name__ == "__main__":
             "eta": args.eta,
             "objective": args.objective,
             "subsample": args.subsample,
-            "colsample_bytree": args.colsample_bytree
+            "colsample_bytree": args.colsample_bytree,
         },
         dtrain=dm_train,
         num_boost_round=args.num_round,
@@ -93,10 +107,14 @@ if __name__ == "__main__":
     cm = confusion_matrix(y_validation, y_validation_predict_class)
     t_n, f_p, f_n, t_p = cm.ravel()
     logger.info(cm)
-    logger.info(np.round(
-        confusion_matrix(y_validation, y_validation_predict_class, normalize="true"),
-        decimals=4
-    ))
+    logger.info(
+        np.round(
+            confusion_matrix(
+                y_validation, y_validation_predict_class, normalize="true"
+            ),
+            decimals=4,
+        )
+    )
 
     # Save the trained model to the location specified by model_dir
     model_location = args.model_dir + "/model.pkl"

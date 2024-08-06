@@ -6,14 +6,14 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 
 class Logger(logging.getLoggerClass()):
-    __GREEN = '\033[0;32m%s\033[0m'
+    __GREEN = "\033[0;32m%s\033[0m"
     __FORMAT = {
-        'fmt': '%(asctime)s %(levelname)s: %(message)s',
-        'datefmt': '%Y-%m-%d %H:%M:%S',
+        "fmt": "%(asctime)s %(levelname)s: %(message)s",
+        "datefmt": "%Y-%m-%d %H:%M:%S",
     }
 
     def __init__(self, format=__FORMAT):
-        super().__init__('Logger')
+        super().__init__("Logger")
         formatter = logging.Formatter(**format)
 
         self.root.setLevel(LOG_LEVEL)

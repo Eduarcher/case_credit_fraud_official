@@ -12,6 +12,7 @@ class DeployEndpointStepJob(Step):
     Args:
         context (CreditFraudPipelineContext): The context object for the pipeline.
     """
+
     def __init__(self, context: CreditFraudPipelineContext):
         self.context = context
 
@@ -19,14 +20,12 @@ class DeployEndpointStepJob(Step):
         response = self.context.lambda_functions.client.get_function(
             FunctionName=self.context.lambda_functions.deploy_func_name,
         )
-        self.lambda_func = Lambda(
-            function_arn=response["Configuration"]["FunctionArn"]
-        )
+        self.lambda_func = Lambda(function_arn=response["Configuration"]["FunctionArn"])
 
     def build(self, model_name: str) -> LambdaStep:
         """
         Builds a LambdaStep object for deploying the endpoint.
-        This Lambda function also enables auto-scalling. 
+        This Lambda function also enables auto-scalling.
 
         Args:
             model_name (str): The name of the model to be deployed.
@@ -40,7 +39,7 @@ class DeployEndpointStepJob(Step):
             inputs={
                 "model_name": model_name,
                 "endpoint_name": self.context.cfg["Deployment"]["EndpointName"],
-                "instance_type": self.context.cfg["Deployment"]["DeployInstanceType"]
-            }
+                "instance_type": self.context.cfg["Deployment"]["DeployInstanceType"],
+            },
         )
         return deploy_step

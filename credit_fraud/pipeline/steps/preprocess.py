@@ -26,9 +26,9 @@ class ProcessingFrameworkStrategy(ABC):
 
 class ScikitLearnFrameworkStrategy(ProcessingFrameworkStrategy):
     """Processing framework strategy for Scikit-Learn.
-    
-        Args:
-            context (CreditFraudPipelineContext): The pipeline context.
+
+    Args:
+        context (CreditFraudPipelineContext): The pipeline context.
     """
 
     def __init__(self, context: CreditFraudPipelineContext):
@@ -36,7 +36,7 @@ class ScikitLearnFrameworkStrategy(ProcessingFrameworkStrategy):
 
         self.context.s3_script_manager.upload_script(
             source_directory=context.cfg["Global"]["JobsScriptsFolder"],
-            script_name="preprocess_sklearn.py"
+            script_name="preprocess_sklearn.py",
         )
 
         self.context.logger.info("Configuring Scikit-Learn processor")
@@ -44,7 +44,9 @@ class ScikitLearnFrameworkStrategy(ProcessingFrameworkStrategy):
             role=self.context.sagemaker_role,
             framework_version="1.2-1",
             instance_count=1,
-            instance_type=self.context.pipeline_params["preprocess_sklearn_instance_type"],
+            instance_type=self.context.pipeline_params[
+                "preprocess_sklearn_instance_type"
+            ],
             base_job_name=f"{self.context['Global']['BaseJobNamePrefix']}-preprocess-sklearn",
         )
 
@@ -60,31 +62,35 @@ class ScikitLearnFrameworkStrategy(ProcessingFrameworkStrategy):
             inputs=[
                 ProcessingInput(
                     source=self.context.s3_raw_data_key,
-                    destination="/opt/ml/processing/raw"
+                    destination="/opt/ml/processing/raw",
                 ),
             ],
             outputs=[
                 ProcessingOutput(
                     destination=self.context.processed_train_data_folder,
                     output_name="train.parquet",
-                    source="/opt/ml/processing/train.parquet"
+                    source="/opt/ml/processing/train.parquet",
                 ),
                 ProcessingOutput(
                     destination=self.context.processed_validation_data_folder,
                     output_name="validation.parquet",
-                    source="/opt/ml/processing/validation.parquet"
+                    source="/opt/ml/processing/validation.parquet",
                 ),
                 ProcessingOutput(
                     destination=self.context.processed_test_data_folder,
                     output_name="test.parquet",
-                    source="/opt/ml/processing/test.parquet"
+                    source="/opt/ml/processing/test.parquet",
                 ),
             ],
             job_arguments=[
-                "--raw-data-key", "/opt/ml/processing/raw",
-                "--train-ratio", self.context.pipeline_params["preprocess_train_ratio"],
-                "--validation-ratio", self.context.pipeline_params["preprocess_validation_ratio"],
-                "--test-ratio", self.context.pipeline_params["preprocess_test_ratio"]
+                "--raw-data-key",
+                "/opt/ml/processing/raw",
+                "--train-ratio",
+                self.context.pipeline_params["preprocess_train_ratio"],
+                "--validation-ratio",
+                self.context.pipeline_params["preprocess_validation_ratio"],
+                "--test-ratio",
+                self.context.pipeline_params["preprocess_test_ratio"],
             ],
             code=self.context.s3_script_manager.get_script_uri("preprocess_sklearn.py"),
         )
@@ -93,9 +99,9 @@ class ScikitLearnFrameworkStrategy(ProcessingFrameworkStrategy):
 
 class PysparkFrameworkStrategy(ProcessingFrameworkStrategy):
     """Processing framework strategy for PySpark.
-        
-        Args:
-            context (CreditFraudPipelineContext): The pipeline context.
+
+    Args:
+        context (CreditFraudPipelineContext): The pipeline context.
     """
 
     def __init__(self, context: CreditFraudPipelineContext):
@@ -103,24 +109,18 @@ class PysparkFrameworkStrategy(ProcessingFrameworkStrategy):
 
         self.context.s3_script_manager.upload_script(
             source_directory=context.cfg["Global"]["JobsScriptsFolder"],
-            script_name="preprocess_pyspark.py"
+            script_name="preprocess_pyspark.py",
         )
 
         self._setup_spark_processor()
 
     def _setup_spark_processor(self):
         """Sets up the PySpark processor with necessary configurations."""
-        env_vars = {
-            "AWS_SPARK_CONFIG_MODE": "2"
-        }
+        env_vars = {"AWS_SPARK_CONFIG_MODE": "2"}
         if self.context.cfg["Preprocess"]["SourceMethod"] == "rds":
-            rds_secret = (
-                SecretManager(
-                    region_name=self.context.region,
-                    logger=self.context.logger
-                )
-                .get_secret(self.context.rds_secret_name)
-            )
+            rds_secret = SecretManager(
+                region_name=self.context.region, logger=self.context.logger
+            ).get_secret(self.context.rds_secret_name)
             env_vars["RDS_SECRET_USERNAME"] = rds_secret["username"]
             env_vars["RDS_SECRET_PASSWORD"] = rds_secret["password"]
             env_vars["RDS_HOST_URL"] = self.context.rds_host_url
@@ -133,11 +133,15 @@ class PysparkFrameworkStrategy(ProcessingFrameworkStrategy):
             py_version="py39",
             container_version="1",
             role=self.context.sagemaker_role,
-            instance_count=self.context.cfg["Preprocess"]["PreprocessPysparkInstanceCount"],
-            instance_type=self.context.cfg["Preprocess"]["PreprocessPysparkInstanceType"],
+            instance_count=self.context.cfg["Preprocess"][
+                "PreprocessPysparkInstanceCount"
+            ],
+            instance_type=self.context.cfg["Preprocess"][
+                "PreprocessPysparkInstanceType"
+            ],
             max_runtime_in_seconds=3600,
             env=env_vars,
-            sagemaker_session=self.context
+            sagemaker_session=self.context,
         )
 
     def build(self) -> ProcessingStep:
@@ -147,33 +151,43 @@ class PysparkFrameworkStrategy(ProcessingFrameworkStrategy):
             ProcessingStep: The built processing step.
         """
         run_args = self.spark_processor.run(
-            submit_app=self.context.s3_script_manager.get_script_uri("preprocess_pyspark.py"),
+            submit_app=self.context.s3_script_manager.get_script_uri(
+                "preprocess_pyspark.py"
+            ),
             submit_jars=["dependencies/mysql-connector-j-9.0.0.jar"],
             arguments=[
-                "--source-method", self.context.cfg["Preprocess"]["SourceMethod"],
-                "--raw-data-key", self.context.s3_raw_data_key,
-                "--train-data-folder", self.context.processed_train_data_folder,
-                "--validation-data-folder", self.context.processed_validation_data_folder,
-                "--test-data-folder", self.context.processed_test_data_folder,
-                "--train-ratio", self.context.pipeline_params["preprocess_train_ratio"],
-                "--validation-ratio", self.context.pipeline_params["preprocess_validation_ratio"],
-                "--test-ratio", self.context.pipeline_params["preprocess_test_ratio"]
+                "--source-method",
+                self.context.cfg["Preprocess"]["SourceMethod"],
+                "--raw-data-key",
+                self.context.s3_raw_data_key,
+                "--train-data-folder",
+                self.context.processed_train_data_folder,
+                "--validation-data-folder",
+                self.context.processed_validation_data_folder,
+                "--test-data-folder",
+                self.context.processed_test_data_folder,
+                "--train-ratio",
+                self.context.pipeline_params["preprocess_train_ratio"],
+                "--validation-ratio",
+                self.context.pipeline_params["preprocess_validation_ratio"],
+                "--test-ratio",
+                self.context.pipeline_params["preprocess_test_ratio"],
             ],
             outputs=[
                 ProcessingOutput(
                     destination=self.context.processed_train_data_folder,
                     output_name="train.parquet",
-                    source="/opt/ml/processing/train.parquet"
+                    source="/opt/ml/processing/train.parquet",
                 ),
                 ProcessingOutput(
                     destination=self.context.processed_validation_data_folder,
                     output_name="validation.parquet",
-                    source="/opt/ml/processing/validation.parquet"
+                    source="/opt/ml/processing/validation.parquet",
                 ),
                 ProcessingOutput(
                     destination=self.context.processed_test_data_folder,
                     output_name="test.parquet",
-                    source="/opt/ml/processing/test.parquet"
+                    source="/opt/ml/processing/test.parquet",
                 ),
             ],
         )
@@ -187,10 +201,11 @@ class PysparkFrameworkStrategy(ProcessingFrameworkStrategy):
 
 class PreprocessStepJob(Step):
     """Constructs a step in the credit fraud pipeline for preprocessing data.
-    
-        Args:
-            context (CreditFraudPipelineContext): The pipeline context.
+
+    Args:
+        context (CreditFraudPipelineContext): The pipeline context.
     """
+
     def __init__(self, context: CreditFraudPipelineContext):
         self.context = context
         self._strategy_framework = self._instantiate_strategy_framework(
@@ -205,11 +220,13 @@ class PreprocessStepJob(Step):
     def strategy_framework(self, strategy: str):
         return self._instantiate_strategy_framework(strategy)
 
-    def _instantiate_strategy_framework(self, strategy: str) -> ProcessingFrameworkStrategy:
+    def _instantiate_strategy_framework(
+        self, strategy: str
+    ) -> ProcessingFrameworkStrategy:
         """Instantiates the processing framework strategy.
 
         Args:
-            strategy (str): The processing framework strategy name. 
+            strategy (str): The processing framework strategy name.
             Accepts "scikit-learn" or "pyspark". Ignores uppercase.
 
         Returns:
@@ -226,7 +243,8 @@ class PreprocessStepJob(Step):
         else:
             raise InvalidProcessingFramework(
                 "Invalid sagemaker processing framework. "
-                + "Available frameworks are: scikit-learn, pyspark.")
+                + "Available frameworks are: scikit-learn, pyspark."
+            )
 
     def build(self) -> ProcessingStep:
         """Builds the preprocessing step.

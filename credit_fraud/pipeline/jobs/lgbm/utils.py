@@ -12,14 +12,18 @@ from constants import constants
 logging.basicConfig(level=logging.INFO)
 
 
-def infer_problem_type(y_train: Union[dd.core.Series, pd.core.series.Series]) -> Tuple[str, int]:
+def infer_problem_type(
+    y_train: Union[dd.core.Series, pd.core.series.Series],
+) -> Tuple[str, int]:
     """Determine the problem type based on the number of unique values in the target.
 
-    If the number of unique values in the target variable equals to 2, then it is binary classification type;
+    If the number of unique values in the target variable equals to 2, then it is 
+    binary classification type;
     if it is more than 2, it is multiclass classification type.
 
     Args:
-        y_train (Union[dd.core.Series, pd.core.series.Series]): the target variable in the training set.
+        y_train (Union[dd.core.Series, pd.core.series.Series]): the target variable in 
+            the training set.
 
     Returns:
         Problem type of either binary classification or multiclass classification and
@@ -34,13 +38,16 @@ def infer_problem_type(y_train: Union[dd.core.Series, pd.core.series.Series]) ->
     return problem_type, num_classes_y
 
 
-def configure_parameters(args: argparse.Namespace, problem_type: str, is_for_dask_train: bool) -> Dict[str, str]:
+def configure_parameters(
+    args: argparse.Namespace, problem_type: str, is_for_dask_train: bool
+) -> Dict[str, str]:
     """Configure parameters for single instance and distributed training.
 
     Args:
         args (argparse.Namespace): model arguments passed by SageMaker DLC.
         problem_type (str): problem type of either binary or multiclass classification.
-        is_for_dask_train (bool): whether the parameters are used for dask distributed training o not.
+        is_for_dask_train (bool): whether the parameters are used for 
+            dask distributed training o not.
 
     Returns:
         A parameter-value pair dictionary.
@@ -49,7 +56,9 @@ def configure_parameters(args: argparse.Namespace, problem_type: str, is_for_das
     params = {
         "device_type": "cpu",
         "boosting_type": "gbdt",
-        "objective": constants.CLASSIFICATION_PROBLEM_TYPE_OBJECTIVE_MAPPING[problem_type],
+        "objective": constants.CLASSIFICATION_PROBLEM_TYPE_OBJECTIVE_MAPPING[
+            problem_type
+        ],
         "learning_rate": args.learning_rate,
         "num_leaves": args.num_leaves,
         "feature_fraction": args.feature_fraction,

@@ -1,5 +1,4 @@
-from sagemaker.processing import \
-    ProcessingInput, ProcessingOutput, ScriptProcessor
+from sagemaker.processing import ProcessingInput, ProcessingOutput, ScriptProcessor
 from sagemaker.workflow.steps import ProcessingStep
 from sagemaker.workflow.properties import PropertyFile
 
@@ -27,7 +26,7 @@ class EvaluateStepJob(Step):
 
         self.context.s3_script_manager.upload_script(
             source_directory=context.cfg["Global"]["JobsScriptsFolder"],
-            script_name="evaluate.py"
+            script_name="evaluate.py",
         )
 
         self.eval_processor = ScriptProcessor(
@@ -75,14 +74,18 @@ class EvaluateStepJob(Step):
                 ProcessingOutput(
                     destination=f"{self.context.bucket_folder}/runs/{self.context.execution_name}/evaluation",
                     output_name="evaluation",
-                    source="/opt/ml/processing/evaluation")
+                    source="/opt/ml/processing/evaluation",
+                )
             ],
             code=self.context.s3_script_manager.get_script_uri("evaluate.py"),
             property_files=[self.evaluation_report],
             job_arguments=[
-                "--model-algorithm", self.context.training_algorithm,
-                "--mlflow-arn", self.context.mlflow.server_arn,
-                "--mlflow-run-id", self.context.mlflow.experiment_run_id
-            ]
+                "--model-algorithm",
+                self.context.training_algorithm,
+                "--mlflow-arn",
+                self.context.mlflow.server_arn,
+                "--mlflow-run-id",
+                self.context.mlflow.experiment_run_id,
+            ],
         )
         return evaluation_step

@@ -1,4 +1,5 @@
 """Main pipeline file used for creating or updating with latest configurations"""
+
 import argparse
 
 from sagemaker.workflow.pipeline import Pipeline
@@ -20,8 +21,9 @@ def run():
     """
     Runs the credit fraud pipeline.
 
-    This function sets up and executes the steps of the credit fraud pipeline. It takes command line arguments
-    to control the behavior of the pipeline. The pipeline includes preprocessing, training, evaluation, and
+    This function sets up and executes the steps of the credit fraud pipeline. 
+    It takes command line arguments to control the behavior of the pipeline. 
+    The pipeline includes preprocessing, training, evaluation, and
     deployment steps.
     """
     logger = Logger()
@@ -43,20 +45,27 @@ def run():
 
     train_step_job = TrainStepJob(context)
     train_step = train_step_job.build(
-        train_data_uri=preprocess_step.properties
-        .ProcessingOutputConfig.Outputs["train.parquet"].S3Output.S3Uri,
-        validation_data_uri=preprocess_step.properties
-        .ProcessingOutputConfig.Outputs["validation.parquet"].S3Output.S3Uri,
+        train_data_uri=preprocess_step.properties.ProcessingOutputConfig.Outputs[
+            "train.parquet"
+        ].S3Output.S3Uri,
+        validation_data_uri=preprocess_step.properties.ProcessingOutputConfig.Outputs[
+            "validation.parquet"
+        ].S3Output.S3Uri,
     )
 
-    evaluation_model_image_uri = train_step_job.strategy_algorithm.get_image_uri(scope="training")
+    evaluation_model_image_uri = train_step_job.strategy_algorithm.get_image_uri(
+        scope="training"
+    )
     evaluation_step = EvaluateStepJob(context, evaluation_model_image_uri).build(
         model_artifact_s3_uri=train_step.properties.ModelArtifacts.S3ModelArtifacts,
-        test_data_uri=preprocess_step.properties
-        .ProcessingOutputConfig.Outputs["test.parquet"].S3Output.S3Uri
+        test_data_uri=preprocess_step.properties.ProcessingOutputConfig.Outputs[
+            "test.parquet"
+        ].S3Output.S3Uri,
     )
 
-    inference_model_image_uri = train_step_job.strategy_algorithm.get_image_uri(scope="inference")
+    inference_model_image_uri = train_step_job.strategy_algorithm.get_image_uri(
+        scope="inference"
+    )
     create_model_step = CreateModelStepJob(context, inference_model_image_uri).build(
         model_artifact_s3_uri=train_step.properties.ModelArtifacts.S3ModelArtifacts
     )
@@ -80,12 +89,8 @@ def run():
     validate_performance_condition_step = ConditionStep(
         name="ValidatePerformanceConditional",
         conditions=[cond_gte],
-        if_steps=[
-            create_model_step,
-            register_model_step,
-            deploy_step
-        ],
-        else_steps=[]
+        if_steps=[create_model_step, register_model_step, deploy_step],
+        else_steps=[],
     )
 
     pipeline = Pipeline(
@@ -97,7 +102,7 @@ def run():
             evaluation_step,
             validate_performance_condition_step,
         ],
-        sagemaker_session=context
+        sagemaker_session=context,
     )
 
     if args.verbose:
@@ -106,9 +111,7 @@ def run():
         logger.info("Upserting pipeline manifest.")
         pipeline.upsert(role_arn=context.sagemaker_role)
         logger.info("Starting pipeline.")
-        start_response = pipeline.start(
-            execution_display_name=context.execution_name
-        )
+        start_response = pipeline.start(execution_display_name=context.execution_name)
         if args.verbose:
             logger.info(f"Pipeline start response: {start_response.describe()}")
 

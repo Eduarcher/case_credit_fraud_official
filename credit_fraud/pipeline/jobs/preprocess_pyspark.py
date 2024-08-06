@@ -1,4 +1,5 @@
 """Preprocessing job for PySpark framework."""
+
 import logging
 import argparse
 import os
@@ -7,7 +8,11 @@ from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as f
 from pyspark.sql.window import Window
 from pyspark.sql.types import (
-    StructField, StructType, DoubleType, IntegerType, FloatType
+    StructField,
+    StructType,
+    DoubleType,
+    IntegerType,
+    FloatType,
 )
 from pyspark.ml.feature import MinMaxScaler, RobustScaler
 from pyspark.ml.functions import vector_to_array
@@ -33,11 +38,9 @@ def transform_dataframe(df):
         df_scaled = df_scaled.withColumn(
             f"V{i}", vector_to_array("min_max_features_scaled").getItem(i)
         )
-    df_scaled = (
-        df_scaled
-        .withColumn("Amount", vector_to_array("Amount_scaled").getItem(0))
-        .drop("min_max_features", "min_max_features_scaled", "Amount_vec", "Amount_scaled")
-    )
+    df_scaled = df_scaled.withColumn(
+        "Amount", vector_to_array("Amount_scaled").getItem(0)
+    ).drop("min_max_features", "min_max_features_scaled", "Amount_vec", "Amount_scaled")
     # Reorder columns. `Class` need to come first.
     df_reordered = move_column_to_first(df_scaled, "Class")
     return df_reordered
@@ -55,16 +58,12 @@ if __name__ == "__main__":
     parser.add_argument("--test-ratio", type=float, default=0.2)
     args, _ = parser.parse_known_args()
 
-    assert args.train_ratio \
-        + args.validation_ratio \
-        + args.test_ratio == 1.0
+    assert args.train_ratio + args.validation_ratio + args.test_ratio == 1.0
 
     local_dir = "/opt/ml/processing"
 
     spark = (
-        SparkSession
-        .builder
-        .appName("PreprocessingJob")
+        SparkSession.builder.appName("PreprocessingJob")
         .config("spark.jars", "mysql-connector-j-9.0.0.jar")
         .getOrCreate()
     )
@@ -109,22 +108,16 @@ if __name__ == "__main__":
 
     # Load dataset from s3
     if args.source_method.lower() == "s3":
-        df = (
-            spark
-            .read
-            .csv(args.raw_data_key, header=True, schema=schema)
-        )
+        df = spark.read.csv(args.raw_data_key, header=True, schema=schema)
     elif args.source_method.lower() == "rds":
-        df = (
-            spark.read.jdbc(
-                url=f"jdbc:mysql://{os.environ.get('RDS_HOST_URL')}",
-                table="credit_fraud.transactions",
-                properties={
-                    "user": os.environ.get("RDS_SECRET_USERNAME"),
-                    "password": os.environ.get("RDS_SECRET_PASSWORD"),
-                    "driver": "com.mysql.cj.jdbc.Driver",
-                }
-            )
+        df = spark.read.jdbc(
+            url=f"jdbc:mysql://{os.environ.get('RDS_HOST_URL')}",
+            table="credit_fraud.transactions",
+            properties={
+                "user": os.environ.get("RDS_SECRET_USERNAME"),
+                "password": os.environ.get("RDS_SECRET_PASSWORD"),
+                "driver": "com.mysql.cj.jdbc.Driver",
+            },
         )
 
     # insert id column
@@ -135,21 +128,22 @@ if __name__ == "__main__":
     train_row_count = int(df_row_count * args.train_ratio)
     validation_row_count = int(df_row_count * args.validation_ratio)
     df_train = df.filter(f"id <= {train_row_count}").drop("id", "Time")
-    df_validation = (
-        df.filter(f"id > {train_row_count} AND id <= {train_row_count + validation_row_count}")
-        .drop("id", "Time")
+    df_validation = df.filter(
+        f"id > {train_row_count} AND id <= {train_row_count + validation_row_count}"
+    ).drop("id", "Time")
+    df_test = df.filter(f"id > {train_row_count + validation_row_count}").drop(
+        "id", "Time"
     )
-    df_test = df.filter(f"id > {train_row_count + validation_row_count}").drop("id", "Time")
 
     # Define Assemblers and Scalers
     columns_to_scale = [f"V{col_id}" for col_id in range(1, 29)]
     assemblers = [
         VectorAssembler(inputCols=columns_to_scale, outputCol="min_max_features"),
-        VectorAssembler(inputCols=["Amount"], outputCol="Amount_vec")
+        VectorAssembler(inputCols=["Amount"], outputCol="Amount_vec"),
     ]
     scalers = [
         MinMaxScaler(inputCol="min_max_features", outputCol="min_max_features_scaled"),
-        RobustScaler(inputCol="Amount_vec", outputCol="Amount_scaled")
+        RobustScaler(inputCol="Amount_vec", outputCol="Amount_scaled"),
     ]
     pipeline = Pipeline(stages=assemblers + scalers)
     scalerModel = pipeline.fit(df_train)

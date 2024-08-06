@@ -12,12 +12,13 @@ from credit_fraud.pipeline.exceptions import InvalidAlgorithmFramework
 
 class RegisterModelStepJob(Step):
     """
-    Constructs a step in the credit fraud pipeline for registering the model 
+    Constructs a step in the credit fraud pipeline for registering the model
         in MLFlow using an Lambda Function.
 
     Args:
         context (CreditFraudPipelineContext): The context object for the pipeline.
     """
+
     def __init__(self, context: CreditFraudPipelineContext):
         self.context = context
 
@@ -25,9 +26,7 @@ class RegisterModelStepJob(Step):
         response = self.context.lambda_functions.client.get_function(
             FunctionName=self.context.lambda_functions.register_model_func_name
         )
-        self.lambda_func = Lambda(
-            function_arn=response["Configuration"]["FunctionArn"]
-        )
+        self.lambda_func = Lambda(function_arn=response["Configuration"]["FunctionArn"])
 
     def build(self, model_artifact_s3_uri: str):
         """
@@ -48,14 +47,14 @@ class RegisterModelStepJob(Step):
             model_name = "LightGBM"
         else:
             raise InvalidAlgorithmFramework(
-                "Invalid training algorithm. Available algorithms are: xgboost, lightgbm.")
+                "Invalid training algorithm."
+                + "Available algorithms are: xgboost, lightgbm."
+            )
         status_code = LambdaOutput(
-            output_name="status_code",
-            output_type=LambdaOutputTypeEnum.String
+            output_name="status_code", output_type=LambdaOutputTypeEnum.String
         )
         response_body = LambdaOutput(
-            output_name="body",
-            output_type=LambdaOutputTypeEnum.String
+            output_name="body", output_type=LambdaOutputTypeEnum.String
         )
         register_model_step = LambdaStep(
             name="RegisterModel",
@@ -64,8 +63,8 @@ class RegisterModelStepJob(Step):
                 "mlflow_arn": self.context.mlflow.server_arn,
                 "run_id": self.context.mlflow.experiment_run_id,
                 "model_path": model_artifact_s3_uri,
-                "model_name": model_name
+                "model_name": model_name,
             },
-            outputs=[status_code, response_body]
+            outputs=[status_code, response_body],
         )
         return register_model_step

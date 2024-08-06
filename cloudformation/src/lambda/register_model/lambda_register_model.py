@@ -30,4 +30,3 @@ def lambda_handler(event, context=None):
         "status_code": 200,
         "body": json.dumps("Model Registered Successfully"),
     }
-

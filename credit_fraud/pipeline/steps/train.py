@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Literal
 
-from sagemaker import hyperparameters, script_uris, model_uris
+from sagemaker import model_uris
 from sagemaker.estimator import Estimator
 from sagemaker.xgboost.estimator import XGBoost
 from sagemaker.workflow.steps import TrainingStep
@@ -18,8 +18,10 @@ class TrainingAlgorithmStrategy(ABC):
     Abstract base class for training algorithm strategies.
 
     Attributes:
-        context (CreditFraudPipelineContext): The context object for the credit fraud pipeline.
-        model_environment (dict): The model environment containing MLflow ARN and run ID.
+        context (CreditFraudPipelineContext): The context object for the 
+            credit fraud pipeline.
+        model_environment (dict): The model environment containing MLflow ARN 
+            and run ID.
     """
 
     def __init__(self, context: CreditFraudPipelineContext) -> None:
@@ -27,12 +29,13 @@ class TrainingAlgorithmStrategy(ABC):
         Initializes a new instance of the TrainingAlgorithmStrategy class.
 
         Args:
-            context (CreditFraudPipelineContext): The context object for the credit fraud pipeline.
+            context (CreditFraudPipelineContext): The context object for the 
+                credit fraud pipeline.
         """
         self.context = context
         self.model_environment = {
             "MLFLOW_ARN": self.context.mlflow.server_arn,
-            "MLFLOW_RUN_ID": self.context.mlflow.experiment_run_id
+            "MLFLOW_RUN_ID": self.context.mlflow.experiment_run_id,
         }
 
     @abstractmethod
@@ -41,7 +44,7 @@ class TrainingAlgorithmStrategy(ABC):
         Abstract method to get the image URI for the training or inference scope.
 
         Args:
-            scope (str): The scope for which to get the image URI. 
+            scope (str): The scope for which to get the image URI.
                 Can be "training" or "inference".
 
         Returns:
@@ -65,7 +68,7 @@ class TrainingAlgorithmStrategy(ABC):
 
 class XGBoostAlgorithmStrategy(TrainingAlgorithmStrategy):
     """
-    A class representing the XGBoost algorithm strategy for training models 
+    A class representing the XGBoost algorithm strategy for training models
         in the Credit Fraud pipeline.
 
     Args:
@@ -89,7 +92,7 @@ class XGBoostAlgorithmStrategy(TrainingAlgorithmStrategy):
             instance_count=self.context.cfg["Training"]["TrainInstanceCount"],
             instance_type=self.context.cfg["Training"]["TrainInstanceType"],
             framework_version=self.context.cfg["Training"]["XGBoostFrameworkVersion"],
-            disable_profiler=True
+            disable_profiler=True,
         )
 
     def get_image_uri(self, scope: Literal["training", "inference"] = None) -> str:
@@ -120,15 +123,11 @@ class XGBoostAlgorithmStrategy(TrainingAlgorithmStrategy):
             TrainingStep: The training step for the XGBoost model.
         """
         training_dataset_s3_path = TrainingInput(
-            s3_data=train_data_uri,
-            content_type="parquet",
-            s3_data_type="S3Prefix"
+            s3_data=train_data_uri, content_type="parquet", s3_data_type="S3Prefix"
         )
 
         validation_dataset_s3_path = TrainingInput(
-            s3_data=train_data_uri,
-            content_type="parquet",
-            s3_data_type="S3Prefix"
+            s3_data=train_data_uri, content_type="parquet", s3_data_type="S3Prefix"
         )
 
         train_step = TrainingStep(
@@ -137,14 +136,15 @@ class XGBoostAlgorithmStrategy(TrainingAlgorithmStrategy):
             inputs={
                 "train_data_path": training_dataset_s3_path,
                 "validation_data_path": validation_dataset_s3_path,
-            }
+            },
         )
         return train_step
 
 
 class LGBMAlgorithmStrategy(TrainingAlgorithmStrategy):
     """
-    A class representing the LightGBM algorithm strategy for training in the Credit Fraud pipeline.
+    A class representing the LightGBM algorithm strategy for training in the 
+        Credit Fraud pipeline.
 
     Args:
         context (CreditFraudPipelineContext): The context object for the pipeline.
@@ -152,7 +152,8 @@ class LGBMAlgorithmStrategy(TrainingAlgorithmStrategy):
     Attributes:
         train_model_id (str): The ID of the LightGBM classification model.
         train_model_version (str): The version of the LightGBM classification model.
-        lgbm_estimator (Estimator): The estimator object for training the LightGBM model.
+        lgbm_estimator (Estimator): The estimator object for training 
+            the LightGBM model.
 
     Methods:
         get_image_uri: Retrieves the image URI for the training scope.
@@ -171,7 +172,7 @@ class LGBMAlgorithmStrategy(TrainingAlgorithmStrategy):
         train_model_uri = model_uris.retrieve(
             model_id=self.train_model_id,
             model_version=self.train_model_version,
-            model_scope="training"
+            model_scope="training",
         )
 
         # Build estimator
@@ -187,10 +188,12 @@ class LGBMAlgorithmStrategy(TrainingAlgorithmStrategy):
             instance_type=self.context.cfg["Training"]["TrainInstanceType"],
             max_run=360000,
             hyperparameters=self.context.model_params,
-            environment=self.model_environment
+            environment=self.model_environment,
         )
 
-    def get_image_uri(self, scope: Literal["training", "inference"] = "training") -> str:
+    def get_image_uri(
+        self, scope: Literal["training", "inference"] = "training"
+    ) -> str:
         """
         Retrieves the image URI for the training scope.
 
@@ -206,7 +209,7 @@ class LGBMAlgorithmStrategy(TrainingAlgorithmStrategy):
             model_id=self.train_model_id,
             model_version=self.train_model_version,
             image_scope=scope,
-            instance_type=self.context.cfg["Training"]["TrainInstanceType"]
+            instance_type=self.context.cfg["Training"]["TrainInstanceType"],
         )
 
     def build(self, train_data_uri: str, validation_data_uri: str) -> TrainingStep:
@@ -235,8 +238,8 @@ class LGBMAlgorithmStrategy(TrainingAlgorithmStrategy):
             estimator=self.lgbm_estimator,
             inputs={
                 "train": training_dataset_s3_path,
-                "validation": validation_dataset_s3_path
-            }
+                "validation": validation_dataset_s3_path,
+            },
         )
         return train_step
 
@@ -250,7 +253,8 @@ class TrainStepJob(Step):
 
     Attributes:
         context (CreditFraudPipelineContext): The context object for the pipeline.
-        _strategy_algorithm (TrainingAlgorithmStrategy): The strategy algorithm for training.
+        _strategy_algorithm (TrainingAlgorithmStrategy): 
+            The strategy algorithm for training.
     """
 
     def __init__(self, context: CreditFraudPipelineContext) -> None:
@@ -287,7 +291,9 @@ class TrainStepJob(Step):
             return LGBMAlgorithmStrategy(self.context)
         else:
             raise InvalidAlgorithmFramework(
-                "Invalid training algorithm. Available algorithms are: xgboost, lightgbm.")
+                "Invalid training algorithm." 
+                + "Available algorithms are: xgboost, lightgbm."
+            )
 
     def build(self, train_data_uri, validation_data_uri) -> TrainingStep:
         """
